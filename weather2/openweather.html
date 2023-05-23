@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="/static/weather2/open-weather-icons/css/open-weather-icons.css">
+    </head>
+    <body>
+        <main>
+            <div class="current">
+                <p>Temp: {{ weather_data.main.temp }}</p>
+                {% for w in weather_data.weather %}
+                <p>{{ w.description }}<i class="owi owi-{{ w.icon }}"></i></p>
+                {% endfor %}
+            </div>
+        </main>
+        <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
+    </body>
+</html>
