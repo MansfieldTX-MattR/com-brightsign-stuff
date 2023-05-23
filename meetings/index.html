@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- <link id="feed-url" href="http://localhost:8080/static/meetings/MeetingsRSS.xml"> -->
+        <!-- <link id="feed-url" href="http://10.10.1.23:8080/static/meetings/MeetingsRSS.xml"> -->
+        <link id="feed-url" href="http://10.10.1.23:8080/rss/meetings.xml">
+        <!-- <link id="feed-url" href="https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24"> -->
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <main id="main">
+            <h1>Upcoming Meetings</h1>
+            <div class="item-container"></div>
+            <!-- <div class="spacer"></div> -->
+            <div class="message-log"></div>
+        </main>
+        <script type="module" src="feedparser.js"></script>
+        <script type="module" src="main.js"></script>
+    </body>
+</html>

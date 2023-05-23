@@ -1,0 +1,40 @@
+<?xml version="1.0"?><rss version="2.0" xmlns:calendarEvent="https://www.mansfieldtexas.gov/Calendar.aspx"><channel>
+	<title>Mansfield, TX - Calendar - Public Meetings</title>
+	<link>https://www.mansfieldtexas.gov/Calendar.aspx</link>
+	<lastBuildDate>Tue, 16 May 2023 13:37:49 -0600</lastBuildDate>
+	<description>Mansfield, TX - Get the latest events</description>
+	<language>en-us</language>
+	<item>
+		<title>Mansfield Park Facilities Development Corporation meeting</title>
+		<link>https://www.mansfieldtexas.gov/Calendar.aspx?EID=2063</link>
+		<pubDate>Wed, 02 Sep 2020 20:36:22 -0600</pubDate>
+		<description>&lt;strong&gt;Event date:&lt;/strong&gt; May 18, 2023 &lt;br&gt;&lt;strong&gt;Event Time: &lt;/strong&gt;06:00 PM - 09:00 PM&lt;br&gt;&lt;strong&gt;Location:&lt;/strong&gt; &lt;br&gt;1200 E. Broad St.&lt;br&gt;Mansfield, TX 76063</description>
+		<calendarEvent:EventDates> May 18, 2023 </calendarEvent:EventDates>
+		<calendarEvent:EventTimes>06:00 PM - 09:00 PM</calendarEvent:EventTimes>
+		<calendarEvent:Location>1200 E. Broad St.&lt;br&gt;Mansfield, TX 76063</calendarEvent:Location>
+		
+		<guid isPermaLink="false">https://www.mansfieldtexas.gov/Calendar.aspx?EID=2063/637346793820000000</guid>
+	</item>
+	<item>
+		<title>Regular City Council Meeting</title>
+		<link>https://www.mansfieldtexas.gov/Calendar.aspx?EID=1880</link>
+		<pubDate>Wed, 02 Sep 2020 16:43:49 -0600</pubDate>
+		<description>&lt;strong&gt;Event date:&lt;/strong&gt; May 22, 2023 &lt;br&gt;&lt;strong&gt;Event Time: &lt;/strong&gt;07:00 PM - 11:00 PM&lt;br&gt;&lt;strong&gt;Location:&lt;/strong&gt; &lt;br&gt;1200 E. Broad St.&lt;br&gt;Mansfield, TX 76063</description>
+		<calendarEvent:EventDates> May 22, 2023 </calendarEvent:EventDates>
+		<calendarEvent:EventTimes>07:00 PM - 11:00 PM</calendarEvent:EventTimes>
+		<calendarEvent:Location>1200 E. Broad St.&lt;br&gt;Mansfield, TX 76063</calendarEvent:Location>
+		
+		<guid isPermaLink="false">https://www.mansfieldtexas.gov/Calendar.aspx?EID=1880/637346654290000000</guid>
+	</item>
+	<item>
+		<title>Historic Preservation Advisory Board </title>
+		<link>https://www.mansfieldtexas.gov/Calendar.aspx?EID=2137</link>
+		<pubDate>Wed, 30 Dec 2020 09:15:12 -0600</pubDate>
+		<description>&lt;strong&gt;Event date:&lt;/strong&gt; May 25, 2023 &lt;br&gt;&lt;strong&gt;Event Time: &lt;/strong&gt;06:00 PM - 08:00 PM&lt;br&gt;&lt;strong&gt;Location:&lt;/strong&gt; &lt;br&gt;102 N. Main St.&lt;br&gt;Mansfield, TX 76063</description>
+		<calendarEvent:EventDates> May 25, 2023 </calendarEvent:EventDates>
+		<calendarEvent:EventTimes>06:00 PM - 08:00 PM</calendarEvent:EventTimes>
+		<calendarEvent:Location>102 N. Main St.&lt;br&gt;Mansfield, TX 76063</calendarEvent:Location>
+		
+		<guid isPermaLink="false">https://www.mansfieldtexas.gov/Calendar.aspx?EID=2137/637449165120000000</guid>
+	</item>
+</channel></rss>
