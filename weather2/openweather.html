@@ -2,8 +2,17 @@
 <html>
     <head>
         <link rel="stylesheet" href="/static/weather2/open-weather-icons/css/open-weather-icons.css">
+        <style>
+            #sky{
+                position: fixed;
+                left: 0;
+                top: 0;
+                z-index: -1;
+            }
+        </style>
     </head>
     <body>
+        <canvas id="sky"></canvas>
         <main>
             <div class="current">
                 <p>Temp: {{ weather_data.main.temp }}</p>
@@ -12,6 +21,24 @@
                 {% endfor %}
             </div>
         </main>
+        <div id="info"></div>
+
+        <script src="//unpkg.com/suncalc@1.8.0/suncalc.js"></script>
+
+        <!-- Import maps polyfill -->
+        <!-- Remove this when import maps will be widely supported -->
+        <script async src="//unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+        <script type="importmap">
+            {
+                "imports": {
+                "three": "//unpkg.com/three@0.152.2/build/three.module.js",
+                "three/addons/": "//unpkg.com/three@0.152.2/examples/jsm/"
+                }
+            }
+        </script>
+
+        <script type="module" src="/static/weather2/skysim.js"></script>
         <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
     </body>
 </html>
