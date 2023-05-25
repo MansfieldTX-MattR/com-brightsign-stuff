@@ -252,8 +252,8 @@
 				effectControls.azimuth = gui.add( effectController, 'azimuth', - 180, 180, 0.1 );
 				gui.add( effectController, 'exposure', 0, 1, 0.0001 ).onChange( guiChanged );
                 effectControls.hour = gui.add(effectController, 'hour', 0, 23, 1);
-                effectControls.minute = gui.add(effectController, 'minute', 0, 60, 1);
-                effectControls.totalMinutes = gui.add(effectController, 'totalMinutes', 0, 1440, 1);
+                effectControls.minute = gui.add(effectController, 'minute', 0, 59, 1);
+                effectControls.totalMinutes = gui.add(effectController, 'totalMinutes', 0, 1339, 1);
 
                 effectControls.elevation.onChange( guiChanged );
                 effectControls.azimuth.onChange( guiChanged );
