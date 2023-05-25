@@ -163,10 +163,10 @@
                 const effectControls = {};
 
 				const effectController = {
-					turbidity: 10,
-					rayleigh: 3,
+					turbidity: .6,
+					rayleigh: 1.05,
 					mieCoefficient: 0.005,
-					mieDirectionalG: 0.7,
+					mieDirectionalG: 0.975,
 					elevation: 2,
 					azimuth: 180,
 					exposure: renderer.toneMappingExposure,
@@ -315,8 +315,7 @@
 
 			function init() {
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 100, 2000000 );
-				camera.position.set( 0, 100, 2000 );
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 100, 2000000 );
 
 				scene = new THREE.Scene();
                 camTrack = new THREE.Mesh();
