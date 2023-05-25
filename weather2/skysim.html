@@ -128,7 +128,7 @@
 
 			let camera, scene, renderer;
 
-			let sky, sun;
+			let sky, sun, camTrack;
 
             const lat = 32.5773;
             const lon = -97.1416;
@@ -157,6 +157,7 @@
 				scene.add( sky );
 
 				sun = new THREE.Vector3();
+                const rho = 10;
 
 				/// GUI
                 const effectControls = {};
@@ -184,17 +185,15 @@
                     if (!camera){
                         return;
                     }
-                    //const angleTo = camera.position.angleTo(sun);
-                    //console.log(angleTo);
-                    //camera.lookAt(sun);
-                    const x = pi / 2;// THREE.MathUtils.degToRad(effectController.elevation + 90);
-                    const z = THREE.MathUtils.degToRad(effectController.azimuth);
-                    const eu = new THREE.Euler(x, 0, -z);
-                    camera.setRotationFromEuler(eu);
-                    //camera.rotateY(-z)
-                    console.log(camera.rotation);
+                    let elevation = effectController.elevation;
+                    if (elevation < 0){
+                        elevation = 0;
+                    }
+                    const phi = THREE.MathUtils.degToRad(90 - elevation);
+                    const theta = THREE.MathUtils.degToRad(effectController.azimuth);
+                    camTrack.position.setFromSphericalCoords(rho, phi, theta);
+                    camera.lookAt(camTrack.position);
                 }
-
 
 
 				function guiChanged() {
@@ -222,7 +221,6 @@
                     //effectController.dt.setHours(effectController.hour);
                     //console.log(effectController.dt.getHours());
                     const sunPos = getSunPos(effectController.dt);
-                    console.log(sunPos);
                     effectController.elevation = sunPos.elevation;
                     effectController.azimuth = sunPos.azimuth;
                     if (effectControls.elevation === undefined){
@@ -321,9 +319,8 @@
 				camera.position.set( 0, 100, 2000 );
 
 				scene = new THREE.Scene();
-
-				const helper = new THREE.GridHelper( 10000, 2, 0xffffff, 0xffffff );
-				scene.add( helper );
+                camTrack = new THREE.Mesh();
+                scene.add(camTrack);
 
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
@@ -331,12 +328,6 @@
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				renderer.toneMappingExposure = 0.5;
 				document.body.appendChild( renderer.domElement );
-
-				const controls = new OrbitControls( camera, renderer.domElement );
-				controls.addEventListener( 'change', render );
-				//controls.maxPolarAngle = Math.PI / 2;
-				controls.enableZoom = false;
-				controls.enablePan = false;
 
 				initSky();
 
