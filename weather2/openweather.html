@@ -9,15 +9,53 @@
                 top: 0;
                 z-index: -1;
             }
+            .current{
+                text-align: center;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 2em;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 1em;
+                margin-top: 5rem;
+                margin-left: 5%;
+                margin-right: 5%;
+                color: white;
+                background-color: rgba(0,0,0,.2);
+            }
+            .current > *{
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+            .temperature{
+                font-size: 3.5em;
+            }
+            .condition{
+                display: flex;
+                flex-direction: row;
+            }
+            .condition > p{
+                padding-left: 1rem;
+            }
+            .condition > i{
+                font-size: 4em;
+                padding-right: 1rem;
+            }
+            #info{
+                display: none;
+            }
         </style>
     </head>
     <body>
         <canvas id="sky"></canvas>
         <main>
             <div class="current">
-                <p>Temp: {{ weather_data.main.temp }}</p>
+                <div class="temperature">{{ weather_data.main.temp }}°F</div>
                 {% for w in weather_data.weather %}
-                <p>{{ w.description }}<i class="owi owi-{{ w.icon }}"></i></p>
+                <div class="condition">
+                    <i class="owi owi-{{ w.icon }}"></i>
+                    <p>({{ w.description }})</p>
+                </div>
                 {% endfor %}
             </div>
         </main>
