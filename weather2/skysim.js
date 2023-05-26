@@ -11,14 +11,37 @@ let sky, sun, camTrack;
 
 let gui, effectController, effectControls;
 
+function isTruthy(o){
+    if (typeof(o) == 'string'){
+        o = o.toLowerCase().trim();
+        let i = null;
+        try {
+            i = parseInt(o);
+        } catch(e){
+            i = null;
+        }
+        if (i !== null){
+            return isTruthy(i);
+        }
+        if (o.indexOf('true') != -1 || o.indexOf('yes') != -1){
+            return true;
+        }
+        return false;
+    }
+    return Boolean(o);
+}
+
 const lat = 32.5773;
 const lon = -97.1416;
 const pi = Math.PI;
 
-const timeStep = 1000;
-const timeIncrement = 90000;
-const realTime = true;
-const useGui = false;
+const queryData = new URLSearchParams(window.location.search);
+
+const timeStep = queryData.has('timeStep') ? queryData.get('timeStep').toString() : 1000;
+const timeIncrement = queryData.has('timeIncrement') ? queryData.get('timeIncrement').toString() : 90000;
+const realTime = queryData.has('realTime') ? isTruthy(queryData.get('realTime')) : true;
+const useGui = queryData.has('useGui') ? isTruthy(queryData.get('useGui')) : false;
+console.log(`realTime: ${realTime}, useGui: ${useGui}`);
 
 function getSunPos(dt){
     const data = SunCalc.getPosition(dt, lat, lon);
