@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link id="weather-data-url" href="/weather-data-json">
         <link rel="stylesheet" href="/static/weather2/open-weather-icons/css/open-weather-icons.css">
         <style>
             #sky{
@@ -78,5 +79,54 @@
 
         <script type="module" src="/static/weather2/skysim.js"></script>
         <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
+        <script type="text/javascript">
+            async function fetchWeather(){
+                const url = document.getElementById('weather-data-url').href;
+                const resp = await fetch(url);
+                return await resp.json();
+            }
+            async function updateWeather(){
+                if (window.stopWeather){
+                    return;
+                }
+                const scriptEl = document.getElementById('weather-json');
+                const currentData = JSON.parse(scriptEl.textContent);
+                const weatherData = await fetchWeather();
+                if (currentData.dt === weatherData.dt){
+                    console.log('dts match');
+                    return;
+                }
+                console.log('updating stuff: ', weatherData);
+                scriptEl.textContent = JSON.stringify(weatherData);
+
+                const currentDiv = document.querySelector("main > .current");
+                currentDiv.querySelector(".temperature").textContent = `${weatherData.main.temp}°F`;
+                currentDiv.querySelectorAll(".condition").forEach((el) => {
+                    el.remove();
+                });
+                weatherData.weather.forEach((w) => {
+                    const rootDiv = document.createElement('div');
+                    rootDiv.classList.add('condition');
+                    rootDiv.appendChild(img);
+                    const iconDiv = document.createElement('i');
+                    iconDiv.classList.add('owi');
+                    iconDiv.classList.add(`owi-${w.icon}`);
+                    rootDiv.appendChild(iconDiv);
+                    const p = document.createElement('p');
+                    p.textContent = `(${w.description})`;
+                    rootDiv.appendChild(p);
+                    currentDiv.appendChild(rootDiv);
+                });
+            }
+
+            function fetchAndUpdate(){
+                if (window.stopWeather){
+                    return;
+                }
+                updateWeather().then(window.setTimeout(fetchAndUpdate, 10000));
+            }
+
+            window.setTimeout(fetchAndUpdate, 10000);
+        </script>
     </body>
 </html>
