@@ -34,13 +34,15 @@
             .condition{
                 display: flex;
                 flex-direction: row;
+                align-items: center;
+                justify-content: space-around;
+                width: 50%;
             }
             .condition > p{
-                padding-left: 1rem;
+
             }
-            .condition > i{
-                font-size: 4em;
-                padding-right: 1rem;
+            .condition > img{
+                max-width: 7em;
             }
             #info{
                 display: none;
@@ -54,7 +56,7 @@
                 <div class="temperature">{{ weather_data.main.temp }}°F</div>
                 {% for w in weather_data.weather %}
                 <div class="condition">
-                    <i class="owi owi-{{ w.icon }}"></i>
+                    <img src="{{ w.meteocon }}" loading="lazy">
                     <p>({{ w.description }})</p>
                 </div>
                 {% endfor %}
@@ -107,11 +109,10 @@
                 weatherData.weather.forEach((w) => {
                     const rootDiv = document.createElement('div');
                     rootDiv.classList.add('condition');
+                    const img = document.createElement('img');
+                    img.src = w.meteocon;
+                    img.loading = "lazy";
                     rootDiv.appendChild(img);
-                    const iconDiv = document.createElement('i');
-                    iconDiv.classList.add('owi');
-                    iconDiv.classList.add(`owi-${w.icon}`);
-                    rootDiv.appendChild(iconDiv);
                     const p = document.createElement('p');
                     p.textContent = `(${w.description})`;
                     rootDiv.appendChild(p);
