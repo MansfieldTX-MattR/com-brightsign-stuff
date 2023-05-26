@@ -8,6 +8,7 @@ aiohttp = "*"
 ipython = "*"
 python-dotenv = "*"
 aiohttp-jinja2 = "*"
+loguru = "*"
 
 [dev-packages]
 

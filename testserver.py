@@ -1,7 +1,7 @@
 import os
 import asyncio
 import datetime
-import logging
+from loguru import logger
 from pathlib import Path
 import aiohttp
 from aiohttp import web
@@ -10,7 +10,6 @@ import jinja2
 import aiohttp_jinja2
 from dotenv import load_dotenv
 
-logger = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
