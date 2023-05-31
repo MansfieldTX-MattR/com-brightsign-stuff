@@ -1,6 +1,7 @@
 import os
 import asyncio
 import datetime
+from collections import Counter
 from loguru import logger
 from pathlib import Path
 import aiohttp
@@ -15,6 +16,7 @@ HERE = Path(__file__).resolve().parent
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
 
 WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=10)
+FORECAST_UPDATE_DELTA = datetime.timedelta(minutes=60)
 
 routes = web.RouteTableDef()
 
@@ -141,15 +143,109 @@ def get_icon(icon: str, is_daytime: bool) -> str:
     day_str = 'd' if is_daytime else 'n'
     return f'{icon[:2]}{day_str}'
 
-def inject_condition_data(weather_data):
-    sunrise = weather_data['sys']['sunrise']
-    sunset = weather_data['sys']['sunset']
+def inject_condition_data(weather_data, sunrise=None, sunset=None):
+    if sunrise is None:
+        sunrise = weather_data['sys']['sunrise']
+    if sunset is None:
+        sunset = weather_data['sys']['sunset']
     is_daytime = sunrise <= weather_data['dt'] <= sunset
     for w in weather_data['weather']:
         cond = WEATHER_CONDITIONS_BY_CODE[w['id']].copy()
         meteocon = get_meteocon(cond['meteocon'], is_daytime)
         cond['meteocon'] = f'/static/weather2/meteocons/line/all/{meteocon}'
         w.update(cond)
+
+def average_forecast_data(forecast_data):
+
+    avg_keys = [
+        'main.temp', 'main.feels_like', 'main.pressure', 'main.humidity',
+        'clouds.all', 'rain.3h',
+    ]
+    min_keys = ['main.temp_min']
+    max_keys = ['main.temp_max', 'rain.3h']
+
+    def get_item_value(item: dict, key: str, default=0):
+        if '.' not in key:
+            return item.get(key, default)
+        _key = key.split('.')[0]
+        next_key = '.'.join(key.split('.')[1:])
+        r = item.setdefault(_key, {})
+        return get_item_value(r, next_key, default)
+
+    def set_item_value(item: dict, key: str, value):
+        if '.' not in key:
+            item[key] = value
+            return
+        _key = key.split('.')[0]
+        next_key = '.'.join(key.split('.')[1:])
+        d = item.setdefault(_key, {})
+        set_item_value(d, next_key, value)
+
+    def build_item(item_data):
+        result = {}
+        keys = avg_keys + min_keys + max_keys
+        keys.append('weather')
+        for key in keys:
+            value = get_item_value(item_data, key)
+            if isinstance(value, list):
+                value = [value[0]]
+            set_item_value(result, key, value)
+
+        return result
+
+    def handle_item(item_data, all_data):
+        for key in avg_keys:
+            value = get_item_value(all_data, key)
+            value += get_item_value(item_data, key)
+            set_item_value(all_data, key, value)
+        for key in min_keys:
+            values = [get_item_value(d, key) for d in [item_data, all_data]]
+            set_item_value(all_data, key, min(values))
+        for key in max_keys:
+            values = [get_item_value(d, key) for d in [item_data, all_data]]
+            set_item_value(all_data, key, max(values))
+
+        weather_list = get_item_value(all_data, 'weather')
+        weather_list.append(get_item_value(item_data, 'weather')[0])
+
+    def finalize_day(data, item_count):
+        for key in avg_keys:
+            value = get_item_value(data, key)
+            value /= item_count
+            set_item_value(data, key, value)
+
+        weather_list = get_item_value(data, 'weather')
+        d = {w['id']:w for w in weather_list}
+        c = Counter([w['id'] for w in weather_list])
+        w_id = c.most_common(1)[0][0]
+        set_item_value(data, 'weather', d[w_id])
+
+    daily = {}
+    cur_data = {}
+    cur_date = None
+    item_count = 0
+
+    for item in forecast_data['list']:
+        dt = datetime.datetime.fromtimestamp(item['dt'])
+        if cur_date is None or dt.date() != cur_date:
+            if item_count != 0:
+                assert cur_date is not None
+                handle_item(item, cur_data)
+                finalize_day(cur_data, item_count)
+                daily[cur_date] = cur_data
+            cur_date = dt.date()
+            cur_data = build_item(item)
+            cur_data['day_short'] = cur_date.strftime('%a')
+            cur_data['day_full'] = cur_date.strftime('%A')
+            item_count = 1
+            continue
+        handle_item(item, cur_data)
+        item_count += 1
+    if cur_date not in daily:
+        assert cur_date is not None
+        finalize_day(cur_data, item_count)
+        daily[cur_date] = cur_data
+    return daily
 
 
 async def get_rss_feed(request, url):
@@ -189,6 +285,44 @@ async def get_geo_coords(request) -> tuple[float, float]:
         request.app['latlon'] = coords
         return coords
 
+@logger.catch
+async def get_forecast_context_data(request):
+    now = datetime.datetime.now()
+    data = request.app.get('weather_forecast')
+    if data is not None:
+        ts = data['dt']
+        dt = datetime.datetime.fromtimestamp(ts)
+        next_update = dt + FORECAST_UPDATE_DELTA
+        if now < next_update:
+            logger.debug('using cached forecast')
+            return {'weather_forecast':data}
+
+    logger.info('retreiving forecast data')
+    lat, lon = await get_geo_coords(request)
+    num_days = 5
+    num_hours = num_days * 24
+    query = {
+        'lat':lat,
+        'lon':lon,
+        'cnt':num_hours // 3,
+        'units':'imperial',
+        'lang':'en',
+        'appid':API_KEY,
+    }
+    url = URL('https://api.openweathermap.org/data/2.5/forecast').with_query(**query)
+    session = get_aio_client_session(request.app)
+    async with session.get(url) as response:
+        response.raise_for_status()
+        data = await response.json()
+        sunrise, sunset = data['city']['sunrise'], data['city']['sunset']
+
+        for item in data['list']:
+            inject_condition_data(item, sunrise, sunset)
+        daily = average_forecast_data(data)
+        data['daily'] = [daily[date] for date in sorted(daily.keys())]
+        data['dt'] = now.timestamp()
+        request.app['weather_forecast'] = data
+        return {'weather_forecast':data}
 
 async def get_weather_context_data(request):
     now = datetime.datetime.now()
@@ -199,7 +333,7 @@ async def get_weather_context_data(request):
         next_update = dt + WEATHER_UPDATE_DELTA
         if now < next_update:
             logger.debug('using cached weather')
-            return weather_data
+            return {'weather_data':weather_data}
 
     logger.info('retreiving weather data')
     lat, lon = await get_geo_coords(request)
@@ -217,27 +351,42 @@ async def get_weather_context_data(request):
         data = await response.json()
         inject_condition_data(data)
         request.app['weather_data'] = data
-        return data
+        return {'weather_data':data}
 
+async def get_context_data(request):
+    coros = [
+        get_weather_context_data(request),
+        get_forecast_context_data(request),
+    ]
+    result = {}
+    for fut in asyncio.as_completed(coros):
+        r = await fut
+        result.update(r)
+    return result
 
 @routes.get('/weather2')
 @aiohttp_jinja2.template('weather2/openweather.html')
 async def get_weather_data(request):
-    data = await get_weather_context_data(request)
-    return {'weather_data':data}
+    data = await get_context_data(request)
+    return data
 
 
 @routes.get('/weather-data-json')
 async def get_weather_data_json(request):
     data = await get_weather_context_data(request)
-    return web.json_response(data)
+    return web.json_response(data['weather_data'])
 
 @routes.get('/weather-data-html')
 @aiohttp_jinja2.template('weather2/includes/weather-current.html')
 async def get_weather_data_html(request):
     data = await get_weather_context_data(request)
-    return {'weather_data':data, 'include_json_data':True}
+    data['include_json_data'] = True
+    return data
 
+@routes.get('/forecast-data-json')
+async def get_forecast_data_json(request):
+    data = await get_forecast_context_data(request)
+    return web.json_response(data['weather_forecast'])
 
 def get_aio_client_session(app):
     session = app.get('aio_client_session')
