@@ -10,13 +10,23 @@
                 top: 0;
                 z-index: -1;
             }
-            .current{
-                text-align: center;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                font-size: 2em;
+            .colunm{
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+            }
+            .row{
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-evenly;
+            }
+            main{
+                text-align: center;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            .current{
+                font-size: 1.5em;
                 padding: 1em;
                 margin-top: 5rem;
                 margin-left: 5%;
@@ -25,23 +35,29 @@
                 background-color: rgba(0,0,0,.2);
             }
             .current > *{
-                padding-top: 1rem;
-                padding-bottom: 1rem;
-            }
-            .temperature{
-                font-size: 3.5em;
-            }
-            .condition{
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-around;
-                width: 50%;
-            }
-            .condition > p{
 
             }
-            .condition > img{
+            .temperature{
+                font-size: 3em;
+            }
+            .condition{
+
+            }
+            .city{
+                text-transform: uppercase;
+                font-weight: 900;
+                letter-spacing: .1em;
+            }
+            .city :first-child{
+                font-size: 1.2em;
+            }
+            .city > p{
+                margin: 0;
+            }
+            p.condition{
+                font-size: .8em;
+            }
+            img.condition{
                 max-width: 7em;
             }
             #info{
@@ -51,8 +67,8 @@
     </head>
     <body>
         <canvas id="sky"></canvas>
-        <main>
-            <div class="current">
+        <main class="column">
+            <div class="current row">
                 {% include 'weather2/includes/weather-current.html' %}
             </div>
         </main>

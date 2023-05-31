@@ -1,11 +1,14 @@
-
-<div class="temperature">{{ weather_data.main.temp }}°F</div>
-{% for w in weather_data.weather %}
-<div class="condition">
-    <img src="{{ w.meteocon }}" loading="lazy">
-    <p>({{ w.description }})</p>
+{% with w=weather_data.weather[0] %}
+<div class="city">
+    <p>{{ weather_data.name }}</p>
+    <p>Weather</p>
 </div>
-{% endfor %}
+<img class="condition" src="{{ w.meteocon }}" loading="lazy">
+<div class="column">
+    <div class="temperature">{{ weather_data.main.temp|round|int }}°F</div>
+    <p class="condition">({{ w.description }})</p>
+</div>
+{% endwith %}
 {% if include_json_data %}
 <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
 {% endif %}
