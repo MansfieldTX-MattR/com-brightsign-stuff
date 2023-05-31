@@ -232,6 +232,11 @@ async def get_weather_data_json(request):
     data = await get_weather_context_data(request)
     return web.json_response(data)
 
+@routes.get('/weather-data-html')
+@aiohttp_jinja2.template('weather2/includes/weather-current.html')
+async def get_weather_data_html(request):
+    data = await get_weather_context_data(request)
+    return {'weather_data':data, 'include_json_data':True}
 
 
 def get_aio_client_session(app):

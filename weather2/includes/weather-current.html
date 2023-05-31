@@ -6,3 +6,6 @@
     <p>({{ w.description }})</p>
 </div>
 {% endfor %}
+{% if include_json_data %}
+<script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
+{% endif %}
