@@ -1,3 +1,6 @@
+const weatherUpdateInterval = 10000;
+window.stopWeather = false;
+
 async function fetchWeather(){
     const url = document.getElementById('weather-data-url').href;
     const resp = await fetch(url);
@@ -32,7 +35,7 @@ function fetchAndUpdate(){
     if (window.stopWeather){
         return;
     }
-    updateWeather().then(window.setTimeout(fetchAndUpdate, 10000));
+    updateWeather().then(window.setTimeout(fetchAndUpdate, weatherUpdateInterval));
 }
 
-window.setTimeout(fetchAndUpdate, 10000);
+window.setTimeout(fetchAndUpdate, weatherUpdateInterval);
