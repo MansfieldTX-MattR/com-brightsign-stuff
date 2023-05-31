@@ -60,6 +60,45 @@
             img.condition{
                 max-width: 7em;
             }
+            .forecast{
+                text-align: center;
+                justify-content: flex-start;
+                padding-top: 20%;
+                margin-left: auto;
+                margin-right: auto;
+                width: fit-content;
+            }
+            .forecast-day{
+                font-size: 1.8em;
+                padding-left: 1em;
+                padding-right: 1em;
+                background-color: rgba(0,0,0,.2);
+                color: white;
+                border-color: #aeaeae;
+                border-width: 1px;
+                border-style: solid;
+            }
+            .forecast-day > p{
+                margin: 0;
+            }
+            .forecast-day :first-child{
+                padding-top: .5em;
+            }
+            .forecast-day :last-child{
+                padding-bottom: .5em;
+            }
+            .day-name{
+
+            }
+            .forecast-day > img{
+                width: 2em;
+            }
+            .temp-hi{
+                color:rgb(255, 160, 160);
+            }
+            .temp-lo{
+                color:aqua
+            }
             #info{
                 display: none;
             }
@@ -70,6 +109,9 @@
         <main class="column">
             <div class="current row">
                 {% include 'weather2/includes/weather-current.html' %}
+            </div>
+            <div class="forecast row">
+                {% include 'weather2/includes/weather-forecast.html' %}
             </div>
         </main>
         <div id="info"></div>
@@ -91,6 +133,7 @@
 
         <script type="module" src="/static/weather2/skysim.js"></script>
         <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
+        <script id="forecast-json" type="application/json">{{ weather_forecast|tojson(2) }}</script>
         <script src="/static/weather2/openweather.js"></script>
     </body>
 </html>

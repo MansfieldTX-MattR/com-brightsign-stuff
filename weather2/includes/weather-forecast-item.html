@@ -1,0 +1,6 @@
+<div class="column forecast-day">
+    <p class="day-name">{{ item.day_short }}</p>
+    <img class="condition" src="{{ item.weather.meteocon }}" loading="lazy">
+    <p class="temp-hi">{{ item.main.temp_max|round|int }}</p>
+    <p class="temp-lo">{{ item.main.temp_min|round|int }}</p>
+</div>
