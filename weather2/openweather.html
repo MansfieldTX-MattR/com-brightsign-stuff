@@ -53,13 +53,7 @@
         <canvas id="sky"></canvas>
         <main>
             <div class="current">
-                <div class="temperature">{{ weather_data.main.temp }}°F</div>
-                {% for w in weather_data.weather %}
-                <div class="condition">
-                    <img src="{{ w.meteocon }}" loading="lazy">
-                    <p>({{ w.description }})</p>
-                </div>
-                {% endfor %}
+                {% include 'weather2/includes/weather-current.html' %}
             </div>
         </main>
         <div id="info"></div>

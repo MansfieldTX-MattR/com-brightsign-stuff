@@ -1,0 +1,8 @@
+
+<div class="temperature">{{ weather_data.main.temp }}°F</div>
+{% for w in weather_data.weather %}
+<div class="condition">
+    <img src="{{ w.meteocon }}" loading="lazy">
+    <p>({{ w.description }})</p>
+</div>
+{% endfor %}
