@@ -1,3 +1,6 @@
 {% for item in weather_forecast.daily %}
 {% include 'weather2/includes/weather-forecast-item.html' %}
 {% endfor %}
+{% if include_json_data %}
+<script id="forecast-json" type="application/json">{{ weather_forecast|tojson(2) }}</script>
+{% endif %}

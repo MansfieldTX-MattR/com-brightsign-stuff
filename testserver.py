@@ -388,6 +388,13 @@ async def get_forecast_data_json(request):
     data = await get_forecast_context_data(request)
     return web.json_response(data['weather_forecast'])
 
+@routes.get('/forecast-data-html')
+@aiohttp_jinja2.template('weather2/includes/weather-forecast.html')
+async def get_forecast_data_html(request):
+    data = await get_forecast_context_data(request)
+    data['include_json_data'] = True
+    return data
+
 def get_aio_client_session(app):
     session = app.get('aio_client_session')
     if session is None:
