@@ -40,7 +40,7 @@ WEATHER_CONDITION_MAP = {
     },
     'Drizzle':{
         'default_icon':'09d',
-        'meteocon':'overcast-{day}-drizzle',
+        'meteocon':'partly-cloudy-{day}-drizzle',
         'codes':{
             300:{'desc':'light intensity drizzle'},
             301:{'desc':'drizzle'},
@@ -55,14 +55,14 @@ WEATHER_CONDITION_MAP = {
     },
     'Rain':{
         'default_icon':'10d',
-        'meteocon':'overcast-{day}-rain',
+        'meteocon':'partly-cloudy-{day}-rain',
         'codes':{
             500:{'desc':'light rain'},
             501:{'desc':'moderate rain'},
             502:{'desc':'heavy intensity rain'},
             503:{'desc':'very heavy rain'},
             504:{'desc':'extreme rain', 'meteocon':'extreme-{day}-rain'},
-            511:{'desc':'freezing rain', 'icon':'13d', 'meteocon':'overcast-{day}-sleet'},
+            511:{'desc':'freezing rain', 'icon':'13d', 'meteocon':'partly-cloudy-{day}-sleet'},
             520:{'desc':'light intensity shower rain', 'icon':'09d'},
             521:{'desc':'shower rain', 'icon':'09d'},
             522:{'desc':'heavy intensity shower rain', 'icon':'09d'},
@@ -71,14 +71,14 @@ WEATHER_CONDITION_MAP = {
     },
     'Snow':{
         'default_icon':'13d',
-        'meteocon':'overcast-{day}-snow',
+        'meteocon':'partly-cloudy-{day}-snow',
         'codes':{
             600:{'desc':'light snow'},
             601:{'desc':'snow'},
             602:{'desc':'heavy snow'},
-            611:{'desc':'sleet', 'meteocon':'overcast-{day}-sleet'},
-            612:{'desc':'light shower sleet', 'meteocon':'overcast-{day}-sleet'},
-            613:{'desc':'shower sleet', 'meteocon':'overcast-{day}-sleet'},
+            611:{'desc':'sleet', 'meteocon':'partly-cloudy-{day}-sleet'},
+            612:{'desc':'light shower sleet', 'meteocon':'partly-cloudy-{day}-sleet'},
+            613:{'desc':'shower sleet', 'meteocon':'partly-cloudy-{day}-sleet'},
             615:{'desc':'light rain and snow'},
             616:{'desc':'rain and snow'},
             620:{'desc':'light shower snow'},
