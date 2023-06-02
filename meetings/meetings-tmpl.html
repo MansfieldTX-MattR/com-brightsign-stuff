@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link id="update-url" href="{{ update_url }}">
+        <link rel="stylesheet" href="/static/meetings/style.css">
+        {% if max_items %}
+        <style>
+            .feed-list-item{
+                max-height: calc(98vh / {{ max_items }});
+            }
+        </style>
+        {% endif %}
+    </head>
+    <body>
+        <main id="main">
+            <h1>{{ page_title }}</h1>
+            {% include 'meetings/includes/feed.html' %}
+        </main>
+        <script type="text/javascript">
+            window.stopUpdate = false;
+            const feedUrlElem = document.getElementById('update-url');
+            const feedUrl = new URL(feedUrlElem.href);
+            const updateInterval = 60000;
+
+            const contentElem = document.querySelector('.item-container');
+
+            if (window.location.host == 'localhost:8080'){
+                feedUrl.host = 'localhost:8080';
+            }
+
+            async function updateFeed(){
+                if (window.stopUpdate){
+                    return;
+                }
+                console.log('updating..');
+                const resp = await fetch(feedUrl);
+                const parser = new DOMParser();
+                const respText = await resp.text();
+                const doc = parser.parseFromString(respText, 'text/html');
+                const newContainer = doc.querySelector('.item-container');
+                const buildDate = parseInt(newContainer.dataset.buildDate);
+                const curBuildDate = parseInt(contentElem.dataset.buildDate);
+                if (buildDate == curBuildDate){
+                    console.log('buildDates match');
+                    return;
+                }
+                const newElems = doc.querySelectorAll(".item-container > *");
+                contentElem.replaceChildren(...newElems);
+                contentElem.dataset.buildDate = buildDate;
+                console.log('updated');
+            }
+
+            function fetchAndUpdate(){
+                if (window.stopUpdate){
+                    return;
+                }
+                updateFeed().then(
+                    window.setTimeout(fetchAndUpdate, updateInterval)
+                );
+            }
+
+            window.setTimeout(fetchAndUpdate, updateInterval);
+        </script>
+    </body>
+</html>

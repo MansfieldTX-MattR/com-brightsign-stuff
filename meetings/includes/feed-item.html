@@ -1,0 +1,34 @@
+{% macro date_fmt(dt) %}{{ dt.strftime('%a %b %d, %Y') }}{% endmacro %}
+{% macro time_fmt(dt) %}{{ dt.strftime('%H:%M %p') }}{% endmacro %}
+{% with %}
+{% set start_date = date_fmt(item.start_time) %}{% set end_date = date_fmt(item.end_time) %}{% set start_time = time_fmt(item.start_time) %}{% set end_time = time_fmt(item.end_time) %}
+<article
+    id="{{ item.start_time.timestamp()|int }} | {{ item.title }}"
+    class="feed-list-item"
+    data-start-date="{{ start_date }}"
+    data-start-time="{{ start_time }}"
+    data-end-date="{{ end_date }}"
+    data-end-time="{{ end_time }}"
+>
+    <h2>{{ item.title }}</h2>
+    {% if item.use_description %}
+    <section class="item-description">
+        <dl>
+            {% for desc_item in item.description_list -%}
+            <dt>{{ desc_item.title }}</dt>
+            <dd>
+                {% for line in desc_item.content_lines -%}
+                <p>{{ line }}</p>
+                {%- endfor %}
+            </dd>
+            {%- endfor %}
+        </dl>
+    </section>
+    {% else %}
+    <section class="item-date-times">
+        <div class="item-date">{{ start_date }}</div>
+        <div class="item-time">{{ start_time }} to {{ end_time }}</div>
+    </section>
+    {% endif %}
+</article>
+{% endwith %}

@@ -1,0 +1,7 @@
+<div class="item-container" data-build-date="{{ rss_feed.build_date.timestamp() | round | int }}">
+{% for item in rss_feed -%}
+    {% if not max_items or loop.index <= max_items %}
+    {% include 'meetings/includes/feed-item.html' %}
+    {% endif %}
+{%- endfor %}
+</div>
