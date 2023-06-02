@@ -9,6 +9,7 @@ ipython = "*"
 python-dotenv = "*"
 aiohttp-jinja2 = "*"
 loguru = "*"
+pyquery = "*"
 
 [dev-packages]
 
