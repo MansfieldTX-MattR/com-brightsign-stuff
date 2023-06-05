@@ -24,15 +24,20 @@
             main{
                 text-align: center;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                color: white;
+                padding-top: 30vh;
+            }
+            .frame{
+                background-color: rgba(0,0,0,.35);
+                border-color: #d5d5d5;
+                border-width: 1px;
+                border-style: solid;
             }
             .current{
                 font-size: 1.5em;
                 padding: 1em;
-                margin-top: 5rem;
                 margin-left: 5%;
                 margin-right: 5%;
-                color: white;
-                background-color: rgba(0,0,0,.2);
             }
             .current > *{
 
@@ -58,25 +63,20 @@
                 font-size: .8em;
             }
             img.condition{
-                max-width: 7em;
+                max-width: 9em;
             }
             .forecast{
-                text-align: center;
                 justify-content: flex-start;
-                padding-top: 20%;
+                padding-top: 8%;
                 margin-left: auto;
                 margin-right: auto;
                 width: fit-content;
+                font-size: 1.2em;
             }
             .forecast-day{
                 font-size: 1.8em;
                 padding-left: 1em;
                 padding-right: 1em;
-                background-color: rgba(0,0,0,.2);
-                color: white;
-                border-color: #aeaeae;
-                border-width: 1px;
-                border-style: solid;
             }
             .forecast-day > p{
                 margin: 0;
@@ -107,7 +107,7 @@
     <body>
         <canvas id="sky"></canvas>
         <main class="column">
-            <div class="current row">
+            <div class="current row frame">
                 {% include 'weather2/includes/weather-current.html' %}
             </div>
             <div class="forecast row">

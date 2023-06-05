@@ -99,6 +99,8 @@ function trackCamera(){
     let elevation = effectController.elevation;
     if (elevation < 0){
         elevation = 0;
+    } else {
+        elevation /= 2;
     }
     const phi = THREE.MathUtils.degToRad(90 - elevation);
     const theta = THREE.MathUtils.degToRad(effectController.azimuth);
@@ -234,7 +236,7 @@ function updateFrame(){
 function init() {
     const canvasEl = document.getElementById('sky');
 
-    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 100, 2000000 );
+    camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 100, 2000000 );
 
     scene = new THREE.Scene();
     camTrack = new THREE.Mesh();
