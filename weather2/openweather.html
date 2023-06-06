@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link id="weather-data-url" href="/weather-data-html">
         <link id="forecast-data-url" href="/forecast-data-html">
         <style>
@@ -31,7 +34,7 @@
             }
             main{
                 text-align: center;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-family: 'Source Sans Pro', sans-serif;
                 color: white;
                 padding-top: 30vh;
             }
@@ -58,17 +61,21 @@
             }
             .city{
                 text-transform: uppercase;
-                font-weight: 900;
                 letter-spacing: .1em;
+                font-size: 1.2em;
             }
             .city :first-child{
                 font-size: 1.2em;
+                font-weight: 900;
+            }
+            .city :last-child{
+                font-weight: 600;
             }
             .city > p{
                 margin: 0;
             }
             p.condition{
-                font-size: .8em;
+
             }
             img.condition{
                 max-width: 9em;
