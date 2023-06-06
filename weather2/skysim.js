@@ -95,15 +95,41 @@ function trackCamera(){
     if (!camera){
         return;
     }
+    const camFov = camera.fov;
+    const maxXOffset = camFov / 1.75;
+    const maxYOffset = camFov / 3;
+    const dt = effectController.dt;
+    const seconds = dt.getMinutes() * 60 + dt.getSeconds();
+    const totalSeconds = dt.getHours() * 3600 + seconds;
+    const oneDay = 86400;
+    const noon = oneDay / 2;
     const rho = 10;
+    let xOffset = 0;
+    let yOffset = 0;
+    let xNorm = 0;
+    let yNorm = 0;
     let elevation = effectController.elevation;
+    let azimuth = effectController.azimuth
+
+    if (totalSeconds <= noon){
+        yNorm = totalSeconds / noon;
+        xNorm = -yNorm + 1;
+        xOffset = xNorm * maxXOffset;
+    } else {
+        yNorm = (oneDay - totalSeconds) / noon;
+        xNorm = -yNorm + 1;
+        xOffset = xNorm * -maxXOffset;
+    }
+
+    yOffset = yNorm * -maxYOffset;
+    elevation += yOffset;
+    azimuth += xOffset;
     if (elevation < 0){
         elevation = 0;
-    } else {
-        elevation /= 2;
     }
+
     const phi = THREE.MathUtils.degToRad(90 - elevation);
-    const theta = THREE.MathUtils.degToRad(effectController.azimuth);
+    const theta = THREE.MathUtils.degToRad(azimuth);
     camTrack.position.setFromSphericalCoords(rho, phi, theta);
     camera.lookAt(camTrack.position);
 }
