@@ -35,7 +35,7 @@ def parse_dt(dt_str: str) -> datetime.datetime:
     return dt.replace(tzinfo=None)
 
 def parse_calenderEvent_dt(date_str: str, time_str: str) -> datetime.datetime:
-    dt_fmt = '%B %d, %Y %H:%M %p'
+    dt_fmt = '%B %d, %Y %I:%M %p'
     m, d, y = date_str.split(' ')
     d = int(d.rstrip(','))
     date_str = f'{m} {d:02d}, {y}'

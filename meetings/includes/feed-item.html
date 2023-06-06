@@ -1,5 +1,5 @@
 {% macro date_fmt(dt) %}{{ dt.strftime('%a %b %d, %Y') }}{% endmacro %}
-{% macro time_fmt(dt) %}{{ dt.strftime('%H:%M %p') }}{% endmacro %}
+{% macro time_fmt(dt) %}{{ dt.strftime('%I:%M %p').lstrip('0') }}{% endmacro %}
 {% with %}
 {% set start_date = date_fmt(item.start_time) %}{% set end_date = date_fmt(item.end_time) %}{% set start_time = time_fmt(item.start_time) %}{% set end_time = time_fmt(item.end_time) %}
 <article
