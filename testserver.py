@@ -159,7 +159,7 @@ def inject_condition_data(weather_data, sunrise=None, sunset=None, dt=None):
     for w in weather_data['weather']:
         cond = WEATHER_CONDITIONS_BY_CODE[w['id']].copy()
         meteocon = get_meteocon(cond['meteocon'], is_daytime)
-        cond['meteocon'] = f'/static/weather2/meteocons/line/all/{meteocon}'
+        cond['meteocon'] = f'/static/weather2/meteocons/fill/all/{meteocon}'
         w.update(cond)
 
 def average_forecast_data(forecast_data):
