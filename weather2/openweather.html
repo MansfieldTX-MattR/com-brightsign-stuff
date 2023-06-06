@@ -21,7 +21,7 @@
                 height: 100%;
                 background-color: rgba(0,0,0,.2);
             }
-            .colunm{
+            .column{
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -36,7 +36,12 @@
                 text-align: center;
                 font-family: 'Source Sans Pro', sans-serif;
                 color: white;
-                padding-top: 30vh;
+                padding-top: 8vh;
+            }
+            .main-item{
+                width: 80%;
+                margin-left: auto;
+                margin-right: auto;
             }
             .frame{
                 background-color: rgba(0,0,0,.35);
@@ -44,11 +49,14 @@
                 border-width: 1px;
                 border-style: solid;
             }
+            .datetime-row{
+                font-size: 2.2em;
+                font-weight: 600;
+                padding-top: 1em;
+                padding-bottom: 1em;
+            }
             .current{
                 font-size: 1.5em;
-                padding: 1em;
-                margin-left: 5%;
-                margin-right: 5%;
             }
             .current > *{
 
@@ -81,17 +89,12 @@
                 max-width: 9em;
             }
             .forecast{
-                justify-content: flex-start;
-                padding-top: 8%;
-                margin-left: auto;
-                margin-right: auto;
-                width: fit-content;
+                padding-top: 7em;
                 font-size: 1.2em;
             }
             .forecast-day{
                 font-size: 1.8em;
-                padding-left: 1em;
-                padding-right: 1em;
+                flex-grow: 1;
             }
             .forecast-day > p{
                 margin: 0;
@@ -122,11 +125,15 @@
     <body>
         <canvas id="sky" class="overlay"></canvas>
         <div id="sky-overlay" class="overlay"></div>
-        <main class="column">
-            <div class="current row frame">
+        <main>
+            <div class="main-item current row frame">
                 {% include 'weather2/includes/weather-current.html' %}
             </div>
-            <div class="forecast row">
+            <div class="main-item row frame datetime-row">
+                <div id="current-date"></div>
+                <div id="current-time"></div>
+            </div>
+            <div class="main-item forecast row">
                 {% include 'weather2/includes/weather-forecast.html' %}
             </div>
         </main>
@@ -151,5 +158,38 @@
         <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
         <script id="forecast-json" type="application/json">{{ weather_forecast|tojson(2) }}</script>
         <script src="/static/weather2/openweather.js"></script>
+        <script type="text/javascript">
+            (function(){
+                const dateFmt = new Intl.DateTimeFormat(
+                    'en-US',
+                    {
+                        year:'numeric',
+                        month:'short',
+                        day:'numeric',
+                        weekday:'short',
+
+                    }
+                );
+                const timeFmt = new Intl.DateTimeFormat(
+                    'en-US',
+                    {
+                        hour:'numeric',
+                        minute:'numeric',
+                    }
+                );
+                const dateEl = document.getElementById('current-date');
+                const timeEl = document.getElementById('current-time');
+
+                function updateDatetime(){
+                    const now = new Date();
+                    dateEl.textContent = dateFmt.format(now);
+                    timeEl.textContent = timeFmt.format(now);
+                }
+
+                updateDatetime();
+
+                window.setInterval(updateDatetime, 1000);
+            })();
+        </script>
     </body>
 </html>
