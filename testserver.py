@@ -148,12 +148,14 @@ def get_icon(icon: str, is_daytime: bool) -> str:
     day_str = 'd' if is_daytime else 'n'
     return f'{icon[:2]}{day_str}'
 
-def inject_condition_data(weather_data, sunrise=None, sunset=None):
+def inject_condition_data(weather_data, sunrise=None, sunset=None, dt=None):
+    if dt is None:
+        dt = weather_data['dt']
     if sunrise is None:
         sunrise = weather_data['sys']['sunrise']
     if sunset is None:
         sunset = weather_data['sys']['sunset']
-    is_daytime = sunrise <= weather_data['dt'] <= sunset
+    is_daytime = sunrise <= dt <= sunset
     for w in weather_data['weather']:
         cond = WEATHER_CONDITIONS_BY_CODE[w['id']].copy()
         meteocon = get_meteocon(cond['meteocon'], is_daytime)
@@ -365,9 +367,10 @@ async def get_forecast_context_data(request):
         response.raise_for_status()
         data = await response.json()
         sunrise, sunset = data['city']['sunrise'], data['city']['sunset']
+        dt = datetime.datetime.now().replace(hour=12, minute=0)
 
         for item in data['list']:
-            inject_condition_data(item, sunrise, sunset)
+            inject_condition_data(item, sunrise, sunset, dt=dt.timestamp())
         daily = average_forecast_data(data)
         data['daily'] = [daily[date] for date in sorted(daily.keys())]
         data['dt'] = now.timestamp()
