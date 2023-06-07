@@ -65,7 +65,7 @@ class Feed:
     def from_xml_str(cls, xml_str: str) -> Feed:
         doc = pq(xml_str, parser='xml', namespaces=NAMESPACES)
         return cls.from_pq(doc)
-    
+
     @classmethod
     def from_pq(cls, doc: pq) -> Feed:
         kw = cls._kwargs_from_pq(doc)
@@ -86,11 +86,11 @@ class Feed:
             description=get_text(chan, 'description'),
         )
         return kw
-    
+
     @classmethod
     def _get_item_class(cls):
         return FeedItem
-    
+
     def add_item(self, item: FeedItem):
         if item.id in self.items:
             assert self.items[item.id] == item
@@ -174,13 +174,13 @@ class FeedItem:
     @property
     def id(self) -> ItemId:
         return self.start_time, self.title
-    
+
     @classmethod
     def from_pq(cls, elem: pq, index_: int) -> FeedItem:
         kw = cls._kwargs_from_pq(elem)
         kw.setdefault('index', index_)
         return cls(**kw)
-    
+
     @classmethod
     def _kwargs_from_pq(cls, elem: pq) -> dict:
         kw = dict(
