@@ -1,5 +1,20 @@
+import os
 import datetime
 from collections import Counter
+import asyncio
+from loguru import logger
+from aiohttp import web
+from yarl import URL
+import aiohttp_jinja2
+
+from .requests import get_aio_client_session
+
+API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
+WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=10)
+FORECAST_UPDATE_DELTA = datetime.timedelta(minutes=60)
+
+
+routes = web.RouteTableDef()
 
 
 WEATHER_CONDITION_MAP = {
@@ -229,3 +244,132 @@ def average_forecast_data(forecast_data):
         finalize_day(cur_data, item_count)
         daily[cur_date] = cur_data
     return daily
+
+
+async def get_geo_coords(request) -> tuple[float, float]:
+    coords = request.app.get('latlon')
+    if coords is not None:
+        return coords
+    query = {
+        'zip':'76063,US',
+        'appid':API_KEY,
+    }
+    url = URL('http://api.openweathermap.org/geo/1.0/zip').with_query(**query)
+    session = get_aio_client_session(request.app)
+    async with session.get(url) as response:
+        response.raise_for_status()
+        data = await response.json()
+        coords = (data['lat'], data['lon'])
+        request.app['latlon'] = coords
+        return coords
+
+@logger.catch
+async def get_forecast_context_data(request):
+    now = datetime.datetime.now()
+    data = request.app.get('weather_forecast')
+    if data is not None:
+        ts = data['dt']
+        dt = datetime.datetime.fromtimestamp(ts)
+        next_update = dt + FORECAST_UPDATE_DELTA
+        if now < next_update:
+            logger.debug('using cached forecast')
+            return {'weather_forecast':data}
+
+    logger.info('retreiving forecast data')
+    lat, lon = await get_geo_coords(request)
+    num_days = 5
+    num_hours = num_days * 24
+    query = {
+        'lat':lat,
+        'lon':lon,
+        'cnt':num_hours // 3,
+        'units':'imperial',
+        'lang':'en',
+        'appid':API_KEY,
+    }
+    url = URL('https://api.openweathermap.org/data/2.5/forecast').with_query(**query)
+    session = get_aio_client_session(request.app)
+    async with session.get(url) as response:
+        response.raise_for_status()
+        data = await response.json()
+        sunrise, sunset = data['city']['sunrise'], data['city']['sunset']
+        dt = datetime.datetime.now().replace(hour=12, minute=0)
+
+        for item in data['list']:
+            inject_condition_data(item, sunrise, sunset, dt=dt.timestamp())
+        daily = average_forecast_data(data)
+        data['daily'] = [daily[date] for date in sorted(daily.keys())]
+        data['dt'] = now.timestamp()
+        request.app['weather_forecast'] = data
+        return {'weather_forecast':data}
+
+async def get_weather_context_data(request):
+    now = datetime.datetime.now()
+    weather_data = request.app.get('weather_data')
+    if weather_data is not None:
+        ts = weather_data['dt']
+        dt = datetime.datetime.fromtimestamp(ts)
+        next_update = dt + WEATHER_UPDATE_DELTA
+        if now < next_update:
+            logger.debug('using cached weather')
+            return {'weather_data':weather_data}
+
+    logger.info('retreiving weather data')
+    lat, lon = await get_geo_coords(request)
+    query = {
+        'lat':lat,
+        'lon':lon,
+        'units':'imperial',
+        'lang':'en',
+        'appid':API_KEY,
+    }
+    url = URL('https://api.openweathermap.org/data/2.5/weather').with_query(**query)
+    session = get_aio_client_session(request.app)
+    async with session.get(url) as response:
+        response.raise_for_status()
+        data = await response.json()
+        inject_condition_data(data)
+        request.app['weather_data'] = data
+        return {'weather_data':data}
+
+async def get_context_data(request):
+    coros = [
+        get_weather_context_data(request),
+        get_forecast_context_data(request),
+    ]
+    result = {}
+    for fut in asyncio.as_completed(coros):
+        r = await fut
+        result.update(r)
+    return result
+
+@routes.get('/weather2')
+@aiohttp_jinja2.template('weather2/openweather.html')
+async def get_weather_data(request):
+    data = await get_context_data(request)
+    return data
+
+
+@routes.get('/weather-data-json')
+async def get_weather_data_json(request):
+    data = await get_weather_context_data(request)
+    return web.json_response(data['weather_data'])
+
+@routes.get('/weather-data-html')
+@aiohttp_jinja2.template('weather2/includes/weather-current.html')
+async def get_weather_data_html(request):
+    data = await get_weather_context_data(request)
+    data['include_json_data'] = True
+    return data
+
+@routes.get('/forecast-data-json')
+async def get_forecast_data_json(request):
+    data = await get_forecast_context_data(request)
+    return web.json_response(data['weather_forecast'])
+
+@routes.get('/forecast-data-html')
+@aiohttp_jinja2.template('weather2/includes/weather-forecast.html')
+async def get_forecast_data_html(request):
+    data = await get_forecast_context_data(request)
+    data['include_json_data'] = True
+    return data
