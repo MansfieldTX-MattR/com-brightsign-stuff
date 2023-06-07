@@ -234,9 +234,14 @@ async def on_cleanup(app):
         logger.info('closing aio_client_session')
         await session.close()
 
+def static_filter(path: str) -> str:
+    path = path.lstrip('/')
+    return f'/static/{path}'
+
 def init_func(argv):
     app = web.Application()
-    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(TEMPLATE_DIR))
+    jinja_env = aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(TEMPLATE_DIR))
+    jinja_env.filters['static'] = static_filter
     routes.static('/static', STATIC_DIR)
     app.add_routes(routes)
     app.on_cleanup.append(on_cleanup)

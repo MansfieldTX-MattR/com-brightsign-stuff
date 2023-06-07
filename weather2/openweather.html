@@ -6,7 +6,7 @@
         <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link id="weather-data-url" href="/weather-data-html">
         <link id="forecast-data-url" href="/forecast-data-html">
-        <link rel="stylesheet" href="/static/weather2/openweather.css">
+        <link rel="stylesheet" href="{{ 'weather2/openweather.css'|static }}">
     </head>
     <body>
         <canvas id="sky" class="overlay"></canvas>
@@ -40,10 +40,10 @@
             }
         </script>
 
-        <script type="module" src="/static/weather2/skysim.js"></script>
+        <script type="module" src="{{ 'weather2/skysim.js'|static }}"></script>
         <script id="weather-json" type="application/json">{{ weather_data|tojson(2) }}</script>
         <script id="forecast-json" type="application/json">{{ weather_forecast|tojson(2) }}</script>
-        <script src="/static/weather2/openweather.js"></script>
+        <script src="{{ 'weather2/openweather.js'|static }}"></script>
         <script type="text/javascript">
             (function(){
                 const dateFmt = new Intl.DateTimeFormat(

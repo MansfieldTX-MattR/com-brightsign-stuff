@@ -2,7 +2,7 @@
 <html>
     <head>
         <link id="update-url" href="{{ update_url }}">
-        <link rel="stylesheet" href="/static/meetings/style.css">
+        <link rel="stylesheet" href="{{ 'meetings/style.css'|static }}">
         {% if max_items %}
         <style>
             .feed-list-item{
