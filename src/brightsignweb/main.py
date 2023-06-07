@@ -11,7 +11,8 @@ from . import requests
 
 
 TEMPLATE_DIR = Path.cwd()
-STATIC_DIR = Path.cwd()
+STATIC_ROOT = Path.cwd()
+STATIC_DIRS = [STATIC_ROOT / s for s in ['meetings', 'weather2']]
 
 routes = web.RouteTableDef()
 
@@ -24,7 +25,8 @@ def init_func(argv):
     app = web.Application()
     jinja_env = aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(TEMPLATE_DIR))
     jinja_env.filters['static'] = static_filter
-    routes.static('/static', STATIC_DIR)
+    for p in STATIC_DIRS:
+        routes.static(f'/static/{p.name}', p)
     for r in [routes, rss_feeds.routes, weather.routes]:
         app.add_routes(r)
     app.on_cleanup.append(requests.on_cleanup)
