@@ -56,9 +56,6 @@ main{
 .temperature{
     font-size: 3em;
 }
-.condition{
-
-}
 .city{
     text-transform: uppercase;
     letter-spacing: .1em;
@@ -73,9 +70,6 @@ main{
 }
 .city > p{
     margin: 0;
-}
-p.condition{
-
 }
 img.condition{
     max-width: 9em;
@@ -96,9 +90,6 @@ img.condition{
 }
 .forecast-day :last-child{
     padding-bottom: .5em;
-}
-.day-name{
-
 }
 .forecast-day > img{
     width: 2em;

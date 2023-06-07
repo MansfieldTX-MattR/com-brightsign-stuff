@@ -13,8 +13,6 @@ from loguru import logger
 
 ItemId = tuple[datetime.datetime, str]
 
-MEETINGS_URL = 'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24'
-CALENDAR_URL = 'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=All-calendar.xml'
 
 NAMESPACES = {
     'calendarEvent':'https://www.mansfieldtexas.gov/Calendar.aspx',
@@ -261,18 +259,3 @@ class DescriptionItem:
             if len(s):
                 lines.append(s)
         return cls(title=title, content_lines=lines)
-
-
-# @logger.catch
-# async def aparse():
-#     async with aiohttp.ClientSession() as session:
-#         async with session.get(CALENDAR_URL) as response:
-#             response.raise_for_status()
-#             resp_text = await response.text()
-#     # return pq(resp_text, parser='xml', namespaces=NAMESPACES)
-#     return CalendarFeed.from_xml_str(resp_text)
-
-# def parse():
-#     loop = asyncio.get_event_loop()
-#     feed = loop.run_until_complete(aparse())
-#     return feed
