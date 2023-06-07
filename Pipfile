@@ -10,6 +10,7 @@ python-dotenv = "*"
 aiohttp-jinja2 = "*"
 loguru = "*"
 pyquery = "*"
+brightsign-stuff = {editable = true, path = "."}
 
 [dev-packages]
 

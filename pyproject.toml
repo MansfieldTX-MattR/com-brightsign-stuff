@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brightsign-stuff"
+requires-python = ">=3.7"
+dependencies = [
+    "aiohttp","aiohttp-jinja2","python-dotenv","loguru","pyquery"
+]
+version = "0.0.1"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -11,10 +11,11 @@ import jinja2
 import aiohttp_jinja2
 from dotenv import load_dotenv
 
-from feedparser import Feed, CalendarFeed
+from .feedparser import Feed, CalendarFeed
 
 
-HERE = Path(__file__).resolve().parent
+TEMPLATE_DIR = Path.cwd()
+STATIC_DIR = Path.cwd()
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
 
 WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=10)
@@ -464,8 +465,8 @@ async def on_cleanup(app):
 
 def init_func(argv):
     app = web.Application()
-    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(HERE))
-    routes.static('/static', HERE)
+    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(TEMPLATE_DIR))
+    routes.static('/static', STATIC_DIR)
     app.add_routes(routes)
     app.on_cleanup.append(on_cleanup)
     return app
