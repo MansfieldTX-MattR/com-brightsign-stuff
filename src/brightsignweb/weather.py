@@ -8,6 +8,7 @@ from yarl import URL
 import aiohttp_jinja2
 
 from .requests import get_aio_client_session
+from .localstorage import get_app_item, set_app_item
 
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
 WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=10)
@@ -247,8 +248,10 @@ def average_forecast_data(forecast_data):
 
 
 async def get_geo_coords(request) -> tuple[float, float]:
-    coords = request.app.get('latlon')
-    if coords is not None:
+    app_item = await get_app_item(request.app, 'latlon')
+    if app_item is not None:
+        coords = app_item.item
+        logger.debug('using cached geo coords')
         return coords
     query = {
         'zip':'76063,US',
@@ -256,24 +259,21 @@ async def get_geo_coords(request) -> tuple[float, float]:
     }
     url = URL('http://api.openweathermap.org/geo/1.0/zip').with_query(**query)
     session = get_aio_client_session(request.app)
+    logger.debug('retrieving geo coords')
     async with session.get(url) as response:
         response.raise_for_status()
         data = await response.json()
         coords = (data['lat'], data['lon'])
-        request.app['latlon'] = coords
+        await set_app_item(request.app, 'latlon', coords)
         return coords
 
 @logger.catch
 async def get_forecast_context_data(request):
     now = datetime.datetime.now()
-    data = request.app.get('weather_forecast')
-    if data is not None:
-        ts = data['dt']
-        dt = datetime.datetime.fromtimestamp(ts)
-        next_update = dt + FORECAST_UPDATE_DELTA
-        if now < next_update:
-            logger.debug('using cached forecast')
-            return {'weather_forecast':data}
+    app_item = await get_app_item(request.app, 'weather_forecast')
+    if app_item is not None and not app_item.expired:
+        logger.debug('using cached forecast')
+        return {'weather_forecast':app_item.item}
 
     logger.info('retreiving forecast data')
     lat, lon = await get_geo_coords(request)
@@ -300,19 +300,19 @@ async def get_forecast_context_data(request):
         daily = average_forecast_data(data)
         data['daily'] = [daily[date] for date in sorted(daily.keys())]
         data['dt'] = now.timestamp()
-        request.app['weather_forecast'] = data
+        dt = datetime.datetime.fromtimestamp(data['dt'])
+        await set_app_item(
+            request.app, 'weather_forecast', data,
+            dt=dt, delta=FORECAST_UPDATE_DELTA,
+        )
         return {'weather_forecast':data}
 
 async def get_weather_context_data(request):
     now = datetime.datetime.now()
-    weather_data = request.app.get('weather_data')
-    if weather_data is not None:
-        ts = weather_data['dt']
-        dt = datetime.datetime.fromtimestamp(ts)
-        next_update = dt + WEATHER_UPDATE_DELTA
-        if now < next_update:
-            logger.debug('using cached weather')
-            return {'weather_data':weather_data}
+    app_item = await get_app_item(request.app, 'weather_data')
+    if app_item is not None and not app_item.expired:
+        logger.debug('using cached weather')
+        return {'weather_data':app_item.item}
 
     logger.info('retreiving weather data')
     lat, lon = await get_geo_coords(request)
@@ -329,7 +329,11 @@ async def get_weather_context_data(request):
         response.raise_for_status()
         data = await response.json()
         inject_condition_data(data)
-        request.app['weather_data'] = data
+        dt = datetime.datetime.fromtimestamp(data['dt'])
+        await set_app_item(
+            request.app, 'weather_data', data,
+            dt=dt, delta=WEATHER_UPDATE_DELTA,
+        )
         return {'weather_data':data}
 
 async def get_context_data(request):

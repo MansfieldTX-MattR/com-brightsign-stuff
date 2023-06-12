@@ -3,6 +3,7 @@ import aiohttp_jinja2
 
 from .feedparser import Feed, CalendarFeed
 from . import requests
+from .localstorage import get_app_item, set_app_item, update_app_items
 
 MEETINGS_URL = 'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24'
 CALENDAR_URL = 'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=All-calendar.xml'
@@ -28,12 +29,14 @@ async def rss_calendar(request):
 
 async def get_rss_tmpl_context(request, url, parser_cls, storage_key):
     resp_text = await get_rss_feed(request, url)
-    feed = request.app.get(storage_key)
-    if feed is None:
+    app_item = await get_app_item(request.app, storage_key)
+    if app_item is None:
         feed = parser_cls.from_xml_str(resp_text)
-        request.app[storage_key] = feed
+        await set_app_item(app=request.app, key=storage_key, item=feed)
     else:
+        feed = app_item.item
         feed.update_from_xml_str(resp_text)
+        await update_app_items(request.app)
     max_items = request.query.get('maxItems')
 
     context = {'rss_feed':feed}

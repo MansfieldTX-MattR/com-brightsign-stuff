@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3ce36fe45b0b721cd0811cf6c661fde7d17a975b6af49f64c31ebb30df49df46"
+            "sha256": "39fd66dfffd288303f059922f369ee88732ce80c32fb8baba1b1436f4c6e492c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,14 @@
         ]
     },
     "default": {
+        "aiofiles": {
+            "hashes": [
+                "sha256:9312414ae06472eb6f1d163f555e466a23aed1c8f60c30cccf7121dba2e53eb2",
+                "sha256:edd247df9a19e0db16534d4baaf536d6609a43e1de5401d7a4c1c148753a1635"
+            ],
+            "index": "pypi",
+            "version": "==23.1.0"
+        },
         "aiohttp": {
             "hashes": [
                 "sha256:03543dcf98a6619254b409be2d22b51f21ec66272be4ebda7b04e6412e4b2e14",
@@ -382,6 +390,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==3.1.2"
+        },
+        "json-object-factory": {
+            "hashes": [
+                "sha256:3f6189fadce539dfd63ff975021fb9a00ba4a3f64f55a328c0119bbf45b28b5e",
+                "sha256:73eecb07706d511ba2616851a19f229cc957cc1a426e285bce4686e557bd6af8"
+            ],
+            "index": "pypi",
+            "version": "==0.0.2"
         },
         "loguru": {
             "hashes": [

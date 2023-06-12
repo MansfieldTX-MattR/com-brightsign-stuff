@@ -10,6 +10,7 @@ import aiohttp
 from pyquery import PyQuery as pq
 from loguru import logger
 
+from .serialization import DataclassSerialize
 
 ItemId = tuple[datetime.datetime, str]
 
@@ -51,13 +52,27 @@ def get_calendarEvent_elem(src_elem, tag_name):
 
 
 @dataclass
-class Feed:
+class Feed(DataclassSerialize):
     title: str
     link: str
     build_date: datetime.datetime
     description: str
     items: dict[ItemId, FeedItem] = field(default_factory=dict)
     items_by_index: dict[int, FeedItem] = field(default_factory=dict)
+
+    def _serialize(self) -> dict:
+        data = super()._serialize()
+        data['items'] = list(self.items.values())
+        del data['items_by_index']
+        return data
+
+    @classmethod
+    def _get_deserialize_kwargs(cls, data: dict) -> dict:
+        kw = super()._get_deserialize_kwargs(data)
+        items = kw['items']
+        kw['items_by_index'] = {item.index:item for item in items}
+        kw['items'] = {item.id:item for item in items}
+        return kw
 
     @classmethod
     def from_xml_str(cls, xml_str: str) -> Feed:
@@ -160,7 +175,7 @@ class Feed:
             yield self.items_by_index[ix]
 
 @dataclass
-class FeedItem:
+class FeedItem(DataclassSerialize):
     title: str
     pub_date: datetime.datetime
     description: str
