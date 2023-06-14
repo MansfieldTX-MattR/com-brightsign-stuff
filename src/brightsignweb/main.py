@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from . import rss_feeds
 from . import weather
 from . import requests
+from .localstorage import UpdateTaskGroup
 
 
 TEMPLATE_DIR = Path.cwd()
@@ -30,4 +31,7 @@ def init_func(argv):
     for r in [routes, rss_feeds.routes, weather.routes]:
         app.add_routes(r)
     app.on_cleanup.append(requests.on_cleanup)
+    app['update_tasks'] = t = UpdateTaskGroup(app)
+    app.cleanup_ctx.append(t.cleanup_ctx)
+    app.on_startup.append(weather.init_app)
     return app

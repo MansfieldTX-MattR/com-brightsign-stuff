@@ -8,7 +8,9 @@ from yarl import URL
 import aiohttp_jinja2
 
 from .requests import get_aio_client_session
-from .localstorage import get_app_item, set_app_item
+from .localstorage import (
+    get_app_item, set_app_item, get_or_create_app_item, AppItem,
+)
 
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
 WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=10)
@@ -247,8 +249,8 @@ def average_forecast_data(forecast_data):
     return daily
 
 
-async def get_geo_coords(request) -> tuple[float, float]:
-    app_item = await get_app_item(request.app, 'latlon')
+async def get_geo_coords(app: web.Application) -> tuple[float, float]:
+    app_item = await get_app_item(app, 'latlon')
     if app_item is not None:
         coords = app_item.item
         logger.debug('using cached geo coords')
@@ -258,25 +260,32 @@ async def get_geo_coords(request) -> tuple[float, float]:
         'appid':API_KEY,
     }
     url = URL('http://api.openweathermap.org/geo/1.0/zip').with_query(**query)
-    session = get_aio_client_session(request.app)
+    session = get_aio_client_session(app)
     logger.debug('retrieving geo coords')
     async with session.get(url) as response:
         response.raise_for_status()
         data = await response.json()
         coords = (data['lat'], data['lon'])
-        await set_app_item(request.app, 'latlon', coords)
+        await set_app_item(app, 'latlon', coords)
         return coords
 
 @logger.catch
 async def get_forecast_context_data(request):
-    now = datetime.datetime.now()
-    app_item = await get_app_item(request.app, 'weather_forecast')
-    if app_item is not None and not app_item.expired:
-        logger.debug('using cached forecast')
+    app_item, created = await get_or_create_app_item(request.app, 'weather_forecast')
+    async with app_item:
+        if created or app_item.expired:
+            logger.debug(f'trigger update_evt for {app_item.key}')
+            app_item.update_evt.set()
+            if created:
+                await app_item.notify.wait()
+        else:
+            logger.debug('using cached forecast')
         return {'weather_forecast':app_item.item}
 
+async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
+    now = datetime.datetime.now()
     logger.info('retreiving forecast data')
-    lat, lon = await get_geo_coords(request)
+    lat, lon = await get_geo_coords(app)
     num_days = 5
     num_hours = num_days * 24
     query = {
@@ -288,7 +297,7 @@ async def get_forecast_context_data(request):
         'appid':API_KEY,
     }
     url = URL('https://api.openweathermap.org/data/2.5/forecast').with_query(**query)
-    session = get_aio_client_session(request.app)
+    session = get_aio_client_session(app)
     async with session.get(url) as response:
         response.raise_for_status()
         data = await response.json()
@@ -301,21 +310,24 @@ async def get_forecast_context_data(request):
         data['daily'] = [daily[date] for date in sorted(daily.keys())]
         data['dt'] = now.timestamp()
         dt = datetime.datetime.fromtimestamp(data['dt'])
-        await set_app_item(
-            request.app, 'weather_forecast', data,
-            dt=dt, delta=FORECAST_UPDATE_DELTA,
-        )
-        return {'weather_forecast':data}
+        await app_item.update(app, item=data, dt=dt, delta=FORECAST_UPDATE_DELTA)
+
 
 async def get_weather_context_data(request):
-    now = datetime.datetime.now()
-    app_item = await get_app_item(request.app, 'weather_data')
-    if app_item is not None and not app_item.expired:
-        logger.debug('using cached weather')
+    app_item, created = await get_or_create_app_item(request.app, 'weather_data')
+    async with app_item:
+        if created or app_item.expired:
+            logger.debug(f'trigger update_evt for {app_item.key}')
+            app_item.update_evt.set()
+            if created:
+                await app_item.notify.wait()
+        else:
+            logger.debug('using cached weather')
         return {'weather_data':app_item.item}
 
+async def _fetch_weather_data(app: web.Application, app_item: AppItem):
     logger.info('retreiving weather data')
-    lat, lon = await get_geo_coords(request)
+    lat, lon = await get_geo_coords(app)
     query = {
         'lat':lat,
         'lon':lon,
@@ -324,17 +336,14 @@ async def get_weather_context_data(request):
         'appid':API_KEY,
     }
     url = URL('https://api.openweathermap.org/data/2.5/weather').with_query(**query)
-    session = get_aio_client_session(request.app)
+    session = get_aio_client_session(app)
     async with session.get(url) as response:
         response.raise_for_status()
         data = await response.json()
         inject_condition_data(data)
         dt = datetime.datetime.fromtimestamp(data['dt'])
-        await set_app_item(
-            request.app, 'weather_data', data,
-            dt=dt, delta=WEATHER_UPDATE_DELTA,
-        )
-        return {'weather_data':data}
+        await app_item.update(app, item=data, dt=dt, delta=WEATHER_UPDATE_DELTA)
+
 
 async def get_context_data(request):
     coros = [
@@ -377,3 +386,13 @@ async def get_forecast_data_html(request):
     data = await get_forecast_context_data(request)
     data['include_json_data'] = True
     return data
+
+
+async def init_app(app: web.Application):
+    logger.debug('weather.init_app()')
+    tg = app['update_tasks']
+    keys = ['weather_data', 'weather_forecast']
+    coros = [_fetch_weather_data, _fetch_forecast_data]
+    for key, coro in zip(keys, coros):
+        app_item, created = await get_or_create_app_item(app, key)
+        await tg.add_task(app_item, update_coro=coro)
