@@ -34,4 +34,5 @@ def init_func(argv):
     app['update_tasks'] = t = UpdateTaskGroup(app)
     app.cleanup_ctx.append(t.cleanup_ctx)
     app.on_startup.append(weather.init_app)
+    app.on_startup.append(rss_feeds.init_app)
     return app
