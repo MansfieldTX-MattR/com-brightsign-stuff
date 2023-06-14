@@ -5,8 +5,16 @@ from .feedparser import Feed, CalendarFeed
 from . import requests
 from .localstorage import get_app_item, set_app_item, update_app_items
 
-MEETINGS_URL = 'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24'
-CALENDAR_URL = 'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=All-calendar.xml'
+FEED_INFO = {
+    'meetings_feed':{
+        'url':'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24',
+        'parser_cls':Feed,
+    },
+    'calendar_feed':{
+        'url':'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=All-calendar.xml',
+        'parser_cls':CalendarFeed,
+    }
+}
 
 routes = web.RouteTableDef()
 
@@ -19,19 +27,20 @@ async def get_rss_feed(request, url):
 
 @routes.get('/rss/meetings.xml')
 async def rss_meetings(request):
-    resp_text = await get_rss_feed(request, MEETINGS_URL)
+    resp_text = await get_rss_feed(request, FEED_INFO['meetings_feed']['url'])
     return web.Response(text=resp_text, content_type='text/xml')
 
 @routes.get('/rss/calendar.xml')
 async def rss_calendar(request):
-    resp_text = await get_rss_feed(request, CALENDAR_URL)
+    resp_text = await get_rss_feed(request, FEED_INFO['calendar_feed']['url'])
     return web.Response(text=resp_text, content_type='text/xml')
 
-async def get_rss_tmpl_context(request, url, parser_cls, storage_key):
-    resp_text = await get_rss_feed(request, url)
+async def get_rss_tmpl_context(request, storage_key):
+    feed_info = FEED_INFO[storage_key]
+    resp_text = await get_rss_feed(request, feed_info['url'])
     app_item = await get_app_item(request.app, storage_key)
     if app_item is None:
-        feed = parser_cls.from_xml_str(resp_text)
+        feed = feed_info['parser_cls'].from_xml_str(resp_text)
         await set_app_item(app=request.app, key=storage_key, item=feed)
     else:
         feed = app_item.item
@@ -47,7 +56,7 @@ async def get_rss_tmpl_context(request, url, parser_cls, storage_key):
 @routes.get('/rss/meetings.html')
 @aiohttp_jinja2.template('meetings/meetings-tmpl.html')
 async def rss_meetings_html(request: web.Request):
-    context = await get_rss_tmpl_context(request, MEETINGS_URL, Feed, 'meetings_feed')
+    context = await get_rss_tmpl_context(request, 'meetings_feed')
     context.update(dict(
         page_title='Upcoming Meetings',
         update_url='/rss/meetings/feed-items',
@@ -57,7 +66,7 @@ async def rss_meetings_html(request: web.Request):
 @routes.get('/rss/calendar.html')
 @aiohttp_jinja2.template('meetings/meetings-tmpl.html')
 async def rss_calendar_html(request: web.Request):
-    context = await get_rss_tmpl_context(request, CALENDAR_URL, CalendarFeed, 'calendar_feed')
+    context = await get_rss_tmpl_context(request, 'calendar_feed')
     context.update(dict(
         page_title='Calendar Events',
         update_url='/rss/calendar/feed-items',
@@ -68,10 +77,10 @@ async def rss_calendar_html(request: web.Request):
 @routes.get('/rss/meetings/feed-items')
 @aiohttp_jinja2.template('meetings/includes/feed.html')
 async def rss_meetings_feed_items(request: web.Request):
-    return await get_rss_tmpl_context(request, MEETINGS_URL, Feed, 'meetings_feed')
+    return await get_rss_tmpl_context(request, 'meetings_feed')
 
 
 @routes.get('/rss/calendar/feed-items')
 @aiohttp_jinja2.template('meetings/includes/feed.html')
 async def rss_calendar_feed_items(request: web.Request):
-    return await get_rss_tmpl_context(request, CALENDAR_URL, CalendarFeed, 'calendar_feed')
+    return await get_rss_tmpl_context(request, 'calendar_feed')
