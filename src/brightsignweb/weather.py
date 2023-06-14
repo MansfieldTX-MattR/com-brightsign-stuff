@@ -13,8 +13,8 @@ from .localstorage import (
 )
 
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
-WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=10)
-FORECAST_UPDATE_DELTA = datetime.timedelta(minutes=60)
+WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=15)
+FORECAST_UPDATE_DELTA = datetime.timedelta(minutes=65)
 
 
 routes = web.RouteTableDef()
