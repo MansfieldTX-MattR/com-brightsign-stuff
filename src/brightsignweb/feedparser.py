@@ -230,6 +230,31 @@ class FeedItem(DataclassSerialize):
             changed = True
         return changed
 
+@dataclass
+class MeetingsFeed(Feed):
+    @classmethod
+    def _get_item_class(cls):
+        return MeetingsFeedItem
+
+    def __iter__(self):
+        for ix in sorted(self.items_by_index):
+            item = self.items_by_index[ix]
+            if item.address != '1200 E. Broad St.':
+                continue
+            yield item
+
+@dataclass
+class MeetingsFeedItem(FeedItem):
+    address: str
+    city: str
+
+    @classmethod
+    def _kwargs_from_pq(cls, elem: pq) -> dict:
+        kw = super()._kwargs_from_pq(elem)
+        location = get_text(elem, 'calendarEvent:Location')
+        kw['address'], kw['city'] = location.split('<br>')
+        return kw
+
 
 @dataclass
 class CalendarFeed(Feed):

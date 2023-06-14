@@ -1,14 +1,14 @@
 from aiohttp import web
 import aiohttp_jinja2
 
-from .feedparser import Feed, CalendarFeed
+from .feedparser import MeetingsFeed, CalendarFeed
 from . import requests
 from .localstorage import get_app_item, set_app_item, update_app_items
 
 FEED_INFO = {
     'meetings_feed':{
         'url':'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24',
-        'parser_cls':Feed,
+        'parser_cls':MeetingsFeed,
     },
     'calendar_feed':{
         'url':'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=All-calendar.xml',

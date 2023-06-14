@@ -9,6 +9,7 @@
     data-start-time="{{ start_time }}"
     data-end-date="{{ end_date }}"
     data-end-time="{{ end_time }}"
+    {% if item.address %}data-address="{{ item.address }}"{% endif %}
 >
     <h2>{{ item.title }}</h2>
     {% if item.use_description %}
