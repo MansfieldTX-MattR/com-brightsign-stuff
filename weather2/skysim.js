@@ -41,6 +41,7 @@ const timeStep = queryData.has('timeStep') ? parseInt(queryData.get('timeStep'))
 const timeIncrement = queryData.has('timeIncrement') ? parseInt(queryData.get('timeIncrement')) : 90000;
 const realTime = queryData.has('realTime') ? isTruthy(queryData.get('realTime')) : true;
 const useGui = queryData.has('useGui') ? isTruthy(queryData.get('useGui')) : false;
+const startTime = queryData.has('startTime') ? parseInt(queryData.get('startTime')) : null;
 console.log(`realTime: ${realTime}, useGui: ${useGui}`);
 
 function getSunPos(dt){
@@ -56,6 +57,14 @@ init();
 render();
 
 
+function dtFromSeconds(seconds){
+    let now = new Date();
+    now.setHours(0);
+    now.setMinutes(0);
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+    return new Date(now.valueOf() + seconds * 1000);
+}
 
 
 function initSky() {
@@ -81,7 +90,7 @@ function initSky() {
         hour: 0,
         minute: 0,
         totalMinutes: 0,
-        dt: new Date(),
+        dt: (startTime !== null) ? dtFromSeconds(startTime) : new Date(),
     };
 
     effectController.hour = effectController.dt.getHours();
