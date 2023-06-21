@@ -45,10 +45,10 @@ async def get_rss_tmpl_context(request, storage_key):
         if app_item.delta is None:
             app_item.delta = UPDATE_DELTA
             app_item.dt = datetime.datetime.now()
-        if created or app_item.delta is None or app_item.expired:
+        if app_item.item is None or app_item.delta is None or app_item.expired:
             logger.debug(f'trigger update_evt for {app_item.key}')
             app_item.update_evt.set()
-            if created:
+            if app_item.item is None:
                 await app_item.notify.wait()
         else:
             logger.debug(f'using cache for {storage_key}')
