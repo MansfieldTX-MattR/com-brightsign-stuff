@@ -229,8 +229,11 @@ function initGui(){
     });
 
 
-    effectController.setNow = function(){
-        effectController.dt = new Date();
+    effectController.setNow = function(dt){
+        if (!(dt instanceof Date)){
+            dt = new Date();
+        }
+        effectController.dt = dt;
         effectController.hour = effectController.dt.getHours();
         effectController.minute = effectController.dt.getMinutes();
         effectController.totalMinutes = effectController.hour * 60 + effectController.minute;
@@ -247,6 +250,22 @@ function initGui(){
         //azimuthControl.setValue(sunPos.azimuth);
     };
 
+    effectController.addMinute = function(){
+        const dt = new Date(effectController.dt.valueOf() + 60000);
+        dt.setSeconds(0);
+        dt.setMilliseconds(0);
+        effectController.setNow(dt);
+    };
+
+    effectController.subMinute = function(){
+        const dt = new Date(effectController.dt.valueOf() - 60000);
+        dt.setSeconds(0);
+        dt.setMilliseconds(0);
+        effectController.setNow(dt);
+    };
+
+    gui.add(effectController, 'addMinute');
+    gui.add(effectController, 'subMinute');
     gui.add( effectController, 'setNow');
 
     guiChanged();
