@@ -211,6 +211,7 @@ async def get_or_create_app_item(app: web.Application, key: str) -> tuple[AppIte
         app_item = item_dict.get(key)
         if app_item is None:
             app_item = AppItem(key=key, item=None)
+            item_dict[key] = app_item
             created = True
     return app_item, created
 
