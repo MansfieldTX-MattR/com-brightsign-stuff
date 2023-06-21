@@ -1,5 +1,6 @@
 from loguru import logger
 from pathlib import Path
+import importlib.resources
 from aiohttp import web
 import jinja2
 import aiohttp_jinja2
@@ -10,9 +11,10 @@ from . import weather
 from . import requests
 from .localstorage import UpdateTaskGroup
 
+PROJECT_ROOT = importlib.resources.files(__name__.split('.')[0])
 
-TEMPLATE_DIR = Path.cwd()
-STATIC_ROOT = Path.cwd()
+TEMPLATE_DIR = PROJECT_ROOT
+STATIC_ROOT = PROJECT_ROOT
 STATIC_DIRS = [STATIC_ROOT / s for s in ['meetings', 'weather2']]
 
 routes = web.RouteTableDef()
