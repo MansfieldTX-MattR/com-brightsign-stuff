@@ -23,6 +23,16 @@
                 {% include 'weather2/includes/weather-forecast.html' %}
             </div>
         </main>
+        <table id="lastUpdateContainer">
+            <tr>
+                <th scope="row">Conditions Updated</th>
+                <td class="current-lastUpdate"></td>
+            </tr>
+            <tr>
+                <th scope="row">Forecast Updated</th>
+                <td class="forecast-lastUpdate"></td>
+            </tr>
+        </table>
         <div id="info" class="hidden"></div>
 
         <script src="//unpkg.com/suncalc@1.8.0/suncalc.js"></script>

@@ -1,6 +1,9 @@
 {% for item in weather_forecast.daily %}
 {% include 'weather2/includes/weather-forecast-item.html' %}
 {% endfor %}
+<p class="lastUpdate"
+   data-time-stamp="{{ weather_forecast.dt }}"
+   data-target=".forecast-lastUpdate"></p>
 {% if include_json_data %}
 <script id="forecast-json" type="application/json">{{ weather_forecast|tojson(2) }}</script>
 {% endif %}

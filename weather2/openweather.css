@@ -102,6 +102,24 @@ img.condition{
 .temp-lo{
     color:aqua
 }
+#lastUpdateContainer{
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 4em;
+    border-spacing: 0px;
+}
+#lastUpdateContainer td,th{
+    border-width: 1px;
+    border-style: solid;
+    border-color:#d5d5d5;
+    padding: .5em;
+}
+#lastUpdateContainer th{
+    text-align: right;
+}
+#lastUpdateContainer td{
+    text-align: left;
+}
 .hidden {
     display: none;
 }

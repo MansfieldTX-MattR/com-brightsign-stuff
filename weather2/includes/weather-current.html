@@ -7,6 +7,9 @@
 <div class="column">
     <div class="temperature">{{ weather_data.main.temp|round|int }}°F</div>
     <p class="condition">({{ w.description }})</p>
+    <p class="lastUpdate"
+       data-time-stamp="{{ weather_data.dt }}"
+       data-target=".current-lastUpdate"></p>
 </div>
 {% endwith %}
 {% if include_json_data %}
