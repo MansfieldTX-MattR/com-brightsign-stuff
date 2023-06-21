@@ -1,3 +1,8 @@
+:root{
+    text-align: center;
+    font-family: 'Source Sans Pro', sans-serif;
+    color: white;
+}
 .overlay{
     position: fixed;
     left: 0;
@@ -24,9 +29,6 @@
     justify-content: space-evenly;
 }
 main{
-    text-align: center;
-    font-family: 'Source Sans Pro', sans-serif;
-    color: white;
     padding-top: 8vh;
 }
 .main-item{
