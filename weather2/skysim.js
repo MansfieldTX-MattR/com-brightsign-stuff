@@ -37,8 +37,8 @@ const pi = Math.PI;
 
 const queryData = new URLSearchParams(window.location.search);
 
-const timeStep = queryData.has('timeStep') ? queryData.get('timeStep').toString() : 1000;
-const timeIncrement = queryData.has('timeIncrement') ? queryData.get('timeIncrement').toString() : 90000;
+const timeStep = queryData.has('timeStep') ? parseInt(queryData.get('timeStep')) : 1000;
+const timeIncrement = queryData.has('timeIncrement') ? parseInt(queryData.get('timeIncrement')) : 90000;
 const realTime = queryData.has('realTime') ? isTruthy(queryData.get('realTime')) : true;
 const useGui = queryData.has('useGui') ? isTruthy(queryData.get('useGui')) : false;
 console.log(`realTime: ${realTime}, useGui: ${useGui}`);
