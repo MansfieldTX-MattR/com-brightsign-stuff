@@ -102,6 +102,6 @@ img.condition{
 .temp-lo{
     color:aqua
 }
-#info, .foo {
+.hidden {
     display: none;
 }
