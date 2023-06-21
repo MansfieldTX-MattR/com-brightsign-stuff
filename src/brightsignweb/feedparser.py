@@ -285,7 +285,7 @@ class CalendarFeedItem(FeedItem):
         return item
 
 @dataclass
-class DescriptionItem:
+class DescriptionItem(DataclassSerialize):
     title: str
     content_lines: list[str]
 
