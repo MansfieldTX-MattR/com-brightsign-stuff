@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Self, ClassVar, TypeVar, Generic, Any, Iterator
 import dataclasses
 from dataclasses import dataclass, field
 import datetime
@@ -13,6 +13,10 @@ from loguru import logger
 from .serialization import DataclassSerialize
 
 ItemId = tuple[datetime.datetime, str]
+
+T = TypeVar('T')
+K = TypeVar('K')
+FT = TypeVar('FT', bound='FeedItem | MeetingsFeedItem | CalendarFeedItem')
 
 
 NAMESPACES = {
@@ -52,13 +56,13 @@ def get_calendarEvent_elem(src_elem, tag_name):
 
 
 @dataclass
-class Feed(DataclassSerialize):
+class Feed(Generic[FT], DataclassSerialize):
     title: str
     link: str
     build_date: datetime.datetime
     description: str
-    items: dict[ItemId, FeedItem] = field(default_factory=dict)
-    items_by_index: dict[int, FeedItem] = field(default_factory=dict)
+    items: dict[ItemId, FT] = field(default_factory=dict)
+    items_by_index: dict[int, FT] = field(default_factory=dict)
 
     def _serialize(self) -> dict:
         data = super()._serialize()
@@ -80,7 +84,7 @@ class Feed(DataclassSerialize):
         return cls.from_pq(doc)
 
     @classmethod
-    def from_pq(cls, doc: pq) -> Feed:
+    def from_pq(cls, doc: pq) -> Self:
         kw = cls._kwargs_from_pq(doc)
         obj = cls(**kw)
         item_cls = cls._get_item_class()
@@ -101,10 +105,10 @@ class Feed(DataclassSerialize):
         return kw
 
     @classmethod
-    def _get_item_class(cls):
-        return FeedItem
+    def _get_item_class(cls) -> type[FT]:
+        raise NotImplementedError
 
-    def add_item(self, item: FeedItem):
+    def add_item(self, item: FT):
         if item.id in self.items:
             assert self.items[item.id] == item
         if item.index in self.items_by_index:
@@ -118,7 +122,7 @@ class Feed(DataclassSerialize):
         doc = pq(xml_str, parser='xml')
         return self.update_from_pq(doc)
 
-    def _check_attrs_changed(self, **kwargs) -> bool:
+    def _check_attrs_changed(self, **kwargs) -> dict[str, Any]:
         return {k:v for k,v in kwargs.items() if getattr(self, k) != v}
 
     @logger.catch
@@ -170,7 +174,7 @@ class Feed(DataclassSerialize):
             self.build_date = orig_build_date
         return changed
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[FT]:
         for ix in sorted(self.items_by_index):
             yield self.items_by_index[ix]
 
@@ -189,7 +193,7 @@ class FeedItem(DataclassSerialize):
         return self.start_time, self.title
 
     @classmethod
-    def from_pq(cls, elem: pq, index_: int) -> FeedItem:
+    def from_pq(cls, elem: pq, index_: int) -> Self:
         kw = cls._kwargs_from_pq(elem)
         kw.setdefault('index', index_)
         return cls(**kw)
@@ -231,7 +235,7 @@ class FeedItem(DataclassSerialize):
         return changed
 
 @dataclass
-class MeetingsFeed(Feed):
+class MeetingsFeed(Feed['MeetingsFeedItem']):
     @classmethod
     def _get_item_class(cls):
         return MeetingsFeedItem
@@ -257,7 +261,7 @@ class MeetingsFeedItem(FeedItem):
 
 
 @dataclass
-class CalendarFeed(Feed):
+class CalendarFeed(Feed['CalendarFeedItem']):
     @classmethod
     def _get_item_class(cls):
         return CalendarFeedItem
@@ -268,7 +272,7 @@ class CalendarFeedItem(FeedItem):
     use_description: ClassVar[bool] = True
 
     @classmethod
-    def from_pq(cls, elem: pq, index_: int) -> FeedItem:
+    def from_pq(cls, elem: pq, index_: int) -> Self:
         obj = super().from_pq(elem, index_)
         desc_txt = obj.description
         while '<strong>' in desc_txt:
