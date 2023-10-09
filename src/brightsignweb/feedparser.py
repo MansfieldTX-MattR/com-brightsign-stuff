@@ -16,11 +16,12 @@ ItemId = tuple[datetime.datetime, str]
 
 T = TypeVar('T')
 K = TypeVar('K')
-FT = TypeVar('FT', bound='FeedItem | MeetingsFeedItem | CalendarFeedItem')
+FT = TypeVar('FT', bound='FeedItem | MeetingsFeedItem | LegistarFeedItem | CalendarFeedItem')
 
 
 NAMESPACES = {
     'calendarEvent':'https://www.mansfieldtexas.gov/Calendar.aspx',
+    'atom':'http://www.w3.org/2005/Atom',
 }
 
 
@@ -33,7 +34,10 @@ def get_text(elem, selector) -> str:
 
 def parse_dt(dt_str: str) -> datetime.datetime:
     # Wed, 02 Sep 2020 20:36:22 -0600
-    dt_fmt = '%a, %d %b %Y %H:%M:%S %z'
+    if dt_str.endswith('GMT'):
+        dt_fmt = '%a, %d %b %Y %H:%M:%S GMT'
+    else:
+        dt_fmt = '%a, %d %b %Y %H:%M:%S %z'
     dt = datetime.datetime.strptime(dt_str, dt_fmt)
     return dt.replace(tzinfo=None)
 
@@ -79,8 +83,9 @@ class Feed(Generic[FT], DataclassSerialize):
         return kw
 
     @classmethod
-    def from_xml_str(cls, xml_str: str) -> Feed:
-        doc = pq(xml_str, parser='xml', namespaces=NAMESPACES)
+    def from_xml_str(cls, xml_str: str) -> Self:
+        xml_bytes = xml_str.encode()
+        doc = pq(xml_bytes, parser='xml', namespaces=NAMESPACES)
         return cls.from_pq(doc)
 
     @classmethod
@@ -119,7 +124,8 @@ class Feed(Generic[FT], DataclassSerialize):
         self.items_by_index[item.index] = item
 
     def update_from_xml_str(self, xml_str: str) -> bool:
-        doc = pq(xml_str, parser='xml')
+        xml_bytes = xml_str.encode()
+        doc = pq(xml_bytes, parser='xml')
         return self.update_from_pq(doc)
 
     def _check_attrs_changed(self, **kwargs) -> dict[str, Any]:
@@ -257,6 +263,46 @@ class MeetingsFeedItem(FeedItem):
         kw = super()._kwargs_from_pq(elem)
         location = get_text(elem, 'calendarEvent:Location')
         kw['address'], kw['city'] = location.split('<br>')
+        return kw
+
+@dataclass
+class LegistarFeed(Feed['LegistarFeedItem']):
+    @classmethod
+    def _get_item_class(cls) -> type[LegistarFeedItem]:
+        return LegistarFeedItem
+
+    @classmethod
+    def _kwargs_from_pq(cls, doc: pq) -> dict:
+        chan = doc('channel').eq(0)
+        kw = dict(
+            title=get_text(chan, 'title'),
+            link=get_text(chan, 'link'),
+            build_date=datetime.datetime.now(),
+            description='',
+        )
+        return kw
+
+
+@dataclass
+class LegistarFeedItem(FeedItem):
+    guid: str
+    category: str
+    @classmethod
+    def _kwargs_from_pq(cls, elem: pq) -> dict:
+        title = get_text(elem, 'title')
+        dt_str = ' '.join(title.split(' - ')[1:])
+        title = title.split(' - ')[0]
+        start_time = datetime.datetime.strptime(dt_str, '%m/%d/%Y %I:%M %p')
+        end_time = start_time + datetime.timedelta(hours=4)
+        kw = dict(
+            title=title,
+            start_time=start_time,
+            end_time=end_time,
+            pub_date=parse_dt(get_text(elem, 'pubDate')),
+            description='',
+            guid=get_text(elem, 'guid'),
+            category=get_text(elem, 'category'),
+        )
         return kw
 
 

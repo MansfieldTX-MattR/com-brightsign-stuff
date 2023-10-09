@@ -3,7 +3,7 @@ from aiohttp import web
 import aiohttp_jinja2
 from loguru import logger
 
-from .feedparser import MeetingsFeed, CalendarFeed
+from .feedparser import MeetingsFeed, CalendarFeed, LegistarFeed
 from . import requests
 from .localstorage import get_or_create_app_item, AppItem
 
@@ -17,6 +17,10 @@ FEED_INFO = {
     'calendar_feed':{
         'url':'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=All-calendar.xml',
         'parser_cls':CalendarFeed,
+    },
+    'legistar_feed':{
+        'url':'https://mansfield.legistar.com/Feed.ashx?M=Calendar&ID=22493777&GUID=82450362-860b-42da-8966-b30a0ceada48&Mode=This%20Week&Title=CITY+OF+MANSFIELD+-+Calendar+(This+Week)',
+        'parser_cls':LegistarFeed,
     }
 }
 
@@ -37,6 +41,11 @@ async def rss_meetings(request):
 @routes.get('/rss/calendar.xml')
 async def rss_calendar(request):
     resp_text = await get_rss_feed(request.app, FEED_INFO['calendar_feed']['url'])
+    return web.Response(text=resp_text, content_type='text/xml')
+
+@routes.get('/rss/legistar.xml')
+async def rss_legistar(request):
+    resp_text = await get_rss_feed(request.app, FEED_INFO['legistar']['url'])
     return web.Response(text=resp_text, content_type='text/xml')
 
 async def get_rss_tmpl_context(request, storage_key):
@@ -92,6 +101,15 @@ async def rss_calendar_html(request: web.Request):
     ))
     return context
 
+@routes.get('/rss/legistar.html')
+@aiohttp_jinja2.template('meetings/meetings-tmpl.html')
+async def rss_legistar_html(request: web.Request):
+    context = await get_rss_tmpl_context(request, 'legistar_feed')
+    context.update(dict(
+        page_title='Upcoming Meetings',
+        update_url='/rss/legistar/feed-items',
+    ))
+    return context
 
 @routes.get('/rss/meetings/feed-items')
 @aiohttp_jinja2.template('meetings/includes/feed.html')
@@ -105,10 +123,16 @@ async def rss_calendar_feed_items(request: web.Request):
     return await get_rss_tmpl_context(request, 'calendar_feed')
 
 
+@routes.get('/rss/legistar/feed-items')
+@aiohttp_jinja2.template('meetings/includes/feed.html')
+async def rss_legistar_feed_items(request: web.Request):
+    return await get_rss_tmpl_context(request, 'legistar_feed')
+
+
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
     tg = app['update_tasks']
-    for key in ['meetings_feed', 'calendar_feed']:
+    for key in ['meetings_feed', 'calendar_feed', 'legistar_feed']:
         app_item, created = await get_or_create_app_item(app, key)
         if app_item.delta is None:
             app_item.delta = UPDATE_DELTA
