@@ -208,7 +208,10 @@ class Feed(Generic[FT], DataclassSerialize):
 
     def __iter__(self) -> Iterator[FT]:
         for ix in sorted(self.items_by_index):
-            yield self.items_by_index[ix]
+            item = self.items_by_index[ix]
+            if item.is_hidden():
+                continue
+            yield item
 
 @dataclass
 class FeedItem(DataclassSerialize):
@@ -246,6 +249,9 @@ class FeedItem(DataclassSerialize):
         for i, key in enumerate(['start_time', 'end_time']):
             kw[key] = parse_calenderEvent_dt(evt_dates[i], evt_times[i])
         return kw
+
+    def is_hidden(self) -> bool:
+        return self.end_time < datetime.datetime.now()
 
     def update(self, **kwargs) -> bool:
         changed = False
