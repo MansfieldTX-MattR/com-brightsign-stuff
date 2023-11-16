@@ -189,7 +189,7 @@ async def custom_feed_item_post(request: web.Request):
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
     tg = app['update_tasks']
-    for key in ['meetings_feed', 'calendar_feed', 'legistar_feed']:
+    for key in ['meetings_feed', 'legistar_feed']:
         app_item, created = await get_or_create_app_item(app, key)
         if app_item.delta is None:
             app_item.delta = UPDATE_DELTA
