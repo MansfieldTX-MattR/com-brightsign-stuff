@@ -126,13 +126,28 @@ class Feed(Generic[FT], DataclassSerialize):
     def update_from_xml_str(self, xml_str: str) -> bool:
         xml_bytes = xml_str.encode()
         doc = pq(xml_bytes, parser='xml')
-        return self.update_from_pq(doc)
+        try:
+            return self.update_from_pq(doc)
+        except IndexError:
+            logger.warning(f'Index error caught, clearing items')
+            self.items.clear()
+            self.items_by_index.clear()
+            return self._update_from_pq(doc)
 
     def _check_attrs_changed(self, **kwargs) -> dict[str, Any]:
         return {k:v for k,v in kwargs.items() if getattr(self, k) != v}
 
     @logger.catch
     def update_from_pq(self, doc: pq) -> bool:
+        try:
+            return self._update_from_pq(doc)
+        except IndexError:
+            logger.warning(f'Index error caught, clearing items')
+            self.items.clear()
+            self.items_by_index.clear()
+            return self._update_from_pq(doc)
+
+    def _update_from_pq(self, doc: pq) -> bool:
         orig_build_date = self.build_date
         kw = self._kwargs_from_pq(doc)
         changed = False
@@ -141,8 +156,14 @@ class Feed(Generic[FT], DataclassSerialize):
             setattr(self, key, val)
             if key != 'build_date':
                 changed = True
+        items_changed = self._update_items_from_pq(doc)
+        if not changed and not items_changed:
+            self.build_date = orig_build_date
+        return changed or items_changed
 
+    def _update_items_from_pq(self, doc: pq) -> bool:
         item_cls = self._get_item_class()
+        changed = False
 
         for item_index, item_el in enumerate(doc('channel > item').items()):
             # logger.debug(f'{item_index=}')
@@ -157,7 +178,10 @@ class Feed(Generic[FT], DataclassSerialize):
                 index_changed = item.index != existing_item.index
                 if self.items_by_index[existing_item.index] is existing_item:
                     # logger.debug(f'existing_item index exists: {existing_item.index=}')
-                    assert existing_item.index > item.index
+                    try:
+                        assert existing_item.index > item.index
+                    except AssertionError:
+                        raise IndexError()
                     del self.items_by_index[existing_item.index]
                 _changed = existing_item.update_from_other(item)
                 # logger.debug(f'item update: {_changed=}')
@@ -170,14 +194,16 @@ class Feed(Generic[FT], DataclassSerialize):
                 existing_item = self.items_by_index[item.index]
                 if existing_item.id != item.id:
                     # logger.debug(f'index exists: {existing_item.index=}')
-                    assert existing_item.index > item.index
+                    try:
+                        assert existing_item.index > item.index
+                    except AssertionError:
+                        raise IndexError()
                     del self.items_by_index[item.index]
 
             # logger.debug('add_item')
             self.add_item(item)
             changed = True
-        if not changed:
-            self.build_date = orig_build_date
+
         return changed
 
     def __iter__(self) -> Iterator[FT]:
