@@ -319,6 +319,13 @@ class LegistarFeed(Feed['LegistarFeedItem']):
 class LegistarFeedItem(FeedItem):
     guid: str
     category: str
+    enabled_categories: ClassVar[list[str]] = [
+        'City Council', 'Historic Landmark Commission',
+        'Planning and Zoning Commission', 'Zoning Board of Adjustments',
+        'Mansfield Park Facilities Development Corporation',
+        'Mansfield Economic Development Corporation',
+    ]
+
     @classmethod
     def _kwargs_from_pq(cls, elem: pq) -> dict:
         title = get_text(elem, 'title')
@@ -336,6 +343,11 @@ class LegistarFeedItem(FeedItem):
             category=get_text(elem, 'category'),
         )
         return kw
+
+    def is_hidden(self) -> bool:
+        if self.category not in self.enabled_categories:
+            return True
+        return super().is_hidden()
 
 
 @dataclass
