@@ -328,10 +328,8 @@ class LegistarFeedItem(FeedItem):
 
     @classmethod
     def _kwargs_from_pq(cls, elem: pq) -> dict:
-        title = get_text(elem, 'title')
-        dt_str = ' '.join(title.split(' - ')[1:])
-        title = title.split(' - ')[0]
-        start_time = datetime.datetime.strptime(dt_str, '%m/%d/%Y %I:%M %p')
+        title, start_time = cls._parse_title(elem)
+
         end_time = start_time + datetime.timedelta(hours=4)
         kw = dict(
             title=title,
@@ -343,6 +341,23 @@ class LegistarFeedItem(FeedItem):
             category=get_text(elem, 'category'),
         )
         return kw
+
+    @classmethod
+    def _parse_title(cls, elem: pq) -> tuple[str, datetime.datetime]:
+        """
+        - "HLC - Preservation Month Sub-Committee - 10/18/2023 - 3:30 PM"
+        - "Mansfield Economic Development Corporation - 10/17/2023 - 5:00 PM"
+        - "Planning and Zoning Commission - 10/16/2023 - 6:00 PM"
+        """
+        title_str = get_text(elem, 'title')
+        dt_str = ' '.join(title_str.split(' - ')[-2:])
+        title = ' - '.join(title_str.split(' - ')[:-2])
+        dt_fmt = '%m/%d/%Y %I:%M %p'
+        try:
+            dt = datetime.datetime.strptime(dt_str, dt_fmt)
+        except ValueError:
+            return title_str, datetime.datetime(1970, 1, 2)
+        return title, dt
 
     def is_hidden(self) -> bool:
         if self.category not in self.enabled_categories:
