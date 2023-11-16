@@ -5,6 +5,7 @@ import dataclasses
 from dataclasses import dataclass, field
 import datetime
 import asyncio
+import base64
 
 import aiohttp
 from pyquery import PyQuery as pq
@@ -71,11 +72,15 @@ class Feed(Generic[FT], DataclassSerialize):
     description: str
     items: dict[ItemId, FT] = field(default_factory=dict)
     items_by_index: dict[int, FT] = field(default_factory=dict)
+    custom_items: dict[ItemId, CustomFeedItem] = field(default_factory=dict)
+    custom_items_by_index: dict[int, CustomFeedItem] = field(default_factory=dict)
 
     def _serialize(self) -> dict:
         data = super()._serialize()
         data['items'] = list(self.items.values())
+        data['custom_items'] = list(self.custom_items.values())
         del data['items_by_index']
+        del data['custom_items_by_index']
         return data
 
     @classmethod
@@ -84,6 +89,9 @@ class Feed(Generic[FT], DataclassSerialize):
         items = kw['items']
         kw['items_by_index'] = {item.index:item for item in items}
         kw['items'] = {item.id:item for item in items}
+        items: list[CustomFeedItem] = kw.get('custom_items', [])
+        kw['custom_items_by_index'] = {item.index:item for item in items}
+        kw['custom_items'] = {item.id:item for item in items}
         return kw
 
     @classmethod
@@ -126,6 +134,21 @@ class Feed(Generic[FT], DataclassSerialize):
         assert item.index not in self.items_by_index
         self.items[item.id] = item
         self.items_by_index[item.index] = item
+
+    def add_custom_item(self, item: CustomFeedItem):
+        if item.id in self.custom_items:
+            cur_item = self.custom_items[item.id]
+            del self.custom_items_by_index[cur_item.index]
+            del self.custom_items[item.id]
+        if item.index in self.custom_items_by_index:
+            raise IndexError('item index exists')
+        if item.index == -1:
+            if not len(self.custom_items):
+                item.index = 0
+            else:
+                item.index = max(self.custom_items_by_index.keys()) + 1
+        self.custom_items[item.id] = item
+        self.custom_items_by_index[item.index] = item
 
     def update_from_xml_str(self, xml_str: str) -> bool:
         xml_bytes = xml_str.encode()
@@ -210,12 +233,36 @@ class Feed(Generic[FT], DataclassSerialize):
 
         return changed
 
-    def __iter__(self) -> Iterator[FT]:
-        for ix in sorted(self.items_by_index):
-            item = self.items_by_index[ix]
+    def iter_items(self) -> Iterator[FT]:
+        dts = {item.start_time:item for item in self.items.values()}
+        for dt in sorted(dts.keys()):
+            item = dts[dt]
             if item.is_hidden():
                 continue
             yield item
+
+    def iter_custom_items(self) -> Iterator[CustomFeedItem]:
+        for ix in sorted(self.custom_items_by_index):
+            item = self.custom_items_by_index[ix]
+            if item.is_hidden():
+                continue
+            yield item
+
+    def iter_limited(self, max_items: int) -> Iterator[FT|CustomFeedItem]:
+        custom_items = [item for item in self.iter_custom_items()]
+        n = max_items - len(custom_items)
+        i = 0
+        for item in self.iter_items():
+            if i >= n:
+                break
+            yield item
+            i += 1
+        yield from custom_items
+
+    def __iter__(self) -> Iterator[FT|CustomFeedItem]:
+        yield from self.iter_items()
+        yield from self.iter_custom_items()
+
 
 @dataclass
 class FeedItem(DataclassSerialize):
@@ -226,6 +273,7 @@ class FeedItem(DataclassSerialize):
     end_time: datetime.datetime
     index: int
     use_description: ClassVar[bool] = False
+    is_custom_item: ClassVar[bool] = False
 
     @property
     def id(self) -> ItemId:
@@ -275,6 +323,39 @@ class FeedItem(DataclassSerialize):
             setattr(self, f.name, oth_val)
             changed = True
         return changed
+
+@dataclass
+class CustomFeedItem(FeedItem):
+    html_content: str|None = None
+    is_custom_item: ClassVar[bool] = True
+
+    @property
+    def has_html(self) -> bool:
+        return self.html_content is not None
+
+    @property
+    def use_description(self) -> bool:
+        return len(self.description.strip(' ')) > 0
+
+    def _serialize(self) -> dict[str, Any]:
+        data = super()._serialize()
+        if self.html_content is not None:
+            s = self.html_content.encode('UTF-8')
+            enc = base64.b64encode(s)
+            data['html_content'] = enc.decode('UTF-8')
+        return data
+
+    @classmethod
+    def _get_deserialize_kwargs(cls, data: dict) -> dict[str, Any]:
+        kw = super()._get_deserialize_kwargs(data)
+        h: str|bytes|None = kw.get('html_content')
+        if h is not None:
+            if isinstance(h, str):
+                h = h.encode('UTF-8')
+            b = base64.b64decode(h)
+            kw['html_content'] = b.decode('UTF-8')
+        return kw
+
 
 @dataclass
 class MeetingsFeed(Feed['MeetingsFeedItem']):

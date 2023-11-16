@@ -1,0 +1,43 @@
+{% macro form_field(label) %}
+<div class="field">
+  <label class="label">{{ label }}</label>
+  <div class="control">
+    {{ caller() }}
+  </div>
+</div>
+{% endmacro %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  </head>
+  <body>
+    <main class="content">
+      <h1 class="title is-h1">Add Custom Item</h1>
+      <form class="container" method="post">
+        {% call form_field('title') %}
+          <input class="input" type="text" name="title" required>
+        {% endcall %}
+        {% call form_field('description') %}
+          <input class="input" type="text" name="description">
+        {% endcall %}
+        {% call form_field('start time') %}
+          <input class="input" type="datetime-local" name="start_time" required>
+        {% endcall %}
+        {% call form_field('end time') %}
+          <input class="input" type="datetime-local" name="end_time" required>
+        {% endcall %}
+        {% call form_field('index') %}
+          <input class="input" type="number" name="index" value="0" required>
+        {% endcall %}
+        {% call form_field('html content') %}
+          <textarea class="textarea" name="html_content"></textarea>
+        {% endcall %}
+        <div class="control">
+          <button class="button is-primary">Submit</button>
+        </div>
+      </form>
+    </main>
+  </body>
+</html>

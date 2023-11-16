@@ -4,7 +4,7 @@
 {% set start_date = date_fmt(item.start_time) %}{% set end_date = date_fmt(item.end_time) %}{% set start_time = time_fmt(item.start_time) %}{% set end_time = time_fmt(item.end_time) %}
 <article
     id="{{ item.start_time.timestamp()|int }} | {{ item.title }}"
-    class="feed-list-item"
+    class="{% if item.is_custom_item %}feed-list-item-custom{% else %}feed-list-item{% endif %}"
     data-start-date="{{ start_date }}"
     data-start-time="{{ start_time }}"
     data-end-date="{{ end_date }}"
@@ -30,6 +30,9 @@
         <div class="item-date">{{ start_date }}</div>
         <div class="item-time">{{ start_time }} to {{ end_time }}</div>
     </section>
+    {% endif %}
+    {% if item.is_custom_item and item.has_html %}
+    {{ item.html_content|safe }}
     {% endif %}
 </article>
 {% endwith %}
