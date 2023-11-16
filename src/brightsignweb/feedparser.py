@@ -24,6 +24,10 @@ NAMESPACES = {
     'atom':'http://www.w3.org/2005/Atom',
 }
 
+class NoRecordsError(ValueError):
+    def __str__(self) -> str:
+        return "No Records and Legistar's feed generator is sending invalid mRSS.  go figure"
+
 
 def get_text(elem, selector) -> str:
     if 'calendarEvent:' in selector:
@@ -314,6 +318,17 @@ class LegistarFeed(Feed['LegistarFeedItem']):
         )
         return kw
 
+    def _update_items_from_pq(self, doc: pq) -> bool:
+        num_items = len(self.items)
+        try:
+            return super()._update_items_from_pq(doc)
+        except NoRecordsError:
+            if num_items == 0:
+                return False
+            self.items.clear()
+            self.items_by_index.clear()
+            return True
+
 
 @dataclass
 class LegistarFeedItem(FeedItem):
@@ -328,6 +343,11 @@ class LegistarFeedItem(FeedItem):
 
     @classmethod
     def _kwargs_from_pq(cls, elem: pq) -> dict:
+        if get_text(elem, 'title').lower() == 'no records':
+            # this is stupid.  if there aren't any feed items, just don't put
+            # anything inside of the <items></items> tag Legistar!!!
+            raise NoRecordsError()
+
         title, start_time = cls._parse_title(elem)
 
         end_time = start_time + datetime.timedelta(hours=4)
