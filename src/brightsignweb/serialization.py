@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterator
+from typing import Iterator, Self, Any
 import dataclasses
 import datetime
 
@@ -7,18 +7,18 @@ import jsonfactory
 
 class DataclassSerialize:
     def _iter_ser_fields(self) -> Iterator[str]:
-        for f in dataclasses.fields(self):
+        for f in dataclasses.fields(self):      # type: ignore
             yield f.name
 
-    def _serialize(self) -> dict:
+    def _serialize(self) -> dict[str, Any]:
         return {attr:getattr(self, attr) for attr in self._iter_ser_fields()}
 
     @classmethod
-    def _get_deserialize_kwargs(cls, data: dict) -> dict:
+    def _get_deserialize_kwargs(cls, data: dict) -> dict[str, Any]:
         return data
 
     @classmethod
-    def _deserialize(cls, data: dict):
+    def _deserialize(cls, data: dict) -> Self:
         kw = cls._get_deserialize_kwargs(data)
         return cls(**kw)
 
