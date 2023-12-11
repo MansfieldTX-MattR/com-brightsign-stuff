@@ -1,7 +1,13 @@
+@media (width: 448px) {
+    :root {
+        font-size: .8em;
+    }
+}
 body{
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: black;
     color: white;
+    overflow-y: hidden;
 }
 #main,.item-container,.feed-list-item,.feed-list-item-custom,.item-date-times{
     display: flex;
@@ -21,10 +27,10 @@ body{
 }
 .feed-list-item,.feed-list-item-custom{
     background-color: rgb(247 247 247 / 20%);
-    width: 92%;
+    width: 100%;
     margin-bottom: .8em;
-    padding-left: 1.5em;
-    padding-right: 1.5em;
+    padding-left: 1em;
+    padding-right: 1em;
     border-radius: 1em;
 }
 .item-date-times{

@@ -1,7 +1,15 @@
+@media (width: 832px) {
+    :root {
+        font-size: .8em;
+    }
+}
 :root{
     text-align: center;
     font-family: 'Source Sans Pro', sans-serif;
     color: white;
+}
+body {
+    margin: 0;
 }
 .overlay{
     position: fixed;
@@ -29,7 +37,7 @@
     justify-content: space-evenly;
 }
 main{
-    padding-top: 8vh;
+    padding-top: 3em;
 }
 .main-item{
     width: 80%;
@@ -77,7 +85,6 @@ img.condition{
     max-width: 9em;
 }
 .forecast{
-    padding-top: 7em;
     font-size: 1.2em;
 }
 .forecast-day{
