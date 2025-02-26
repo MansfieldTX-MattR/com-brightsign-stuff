@@ -10,11 +10,11 @@ python-dotenv = "*"
 aiohttp-jinja2 = "*"
 loguru = "*"
 pyquery = "*"
-brightsign-stuff = {editable = true, path = "."}
 aiofiles = "*"
 json-object-factory = "*"
 
 [dev-packages]
+brightsign-stuff = {editable = true, path = "."}
 
 [requires]
 python_version = "3.11"
