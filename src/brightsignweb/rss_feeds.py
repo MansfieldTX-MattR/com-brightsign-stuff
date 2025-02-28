@@ -6,6 +6,8 @@ from loguru import logger
 from .feedparser import Feed, MeetingsFeed, CalendarFeed, LegistarFeed, CustomFeedItem
 from . import requests
 from .localstorage import get_or_create_app_item, AppItem
+from .types import *
+
 
 UPDATE_DELTA = datetime.timedelta(minutes=5)
 
@@ -188,7 +190,7 @@ async def custom_feed_item_post(request: web.Request):
 
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
-    tg = app['update_tasks']
+    tg = app[UPDATE_TASK_GROUP_KEY]
     for key in ['meetings_feed', 'legistar_feed']:
         app_item, created = await get_or_create_app_item(app, key)
         if app_item.delta is None:

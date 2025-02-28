@@ -11,6 +11,8 @@ from .requests import get_aio_client_session
 from .localstorage import (
     get_app_item, set_app_item, get_or_create_app_item, AppItem,
 )
+from .types import *
+
 
 API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
 WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=15)
@@ -390,7 +392,7 @@ async def get_forecast_data_html(request):
 
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
-    tg = app['update_tasks']
+    tg = app[UPDATE_TASK_GROUP_KEY]
     keys = ['weather_data', 'weather_forecast']
     coros = [_fetch_weather_data, _fetch_forecast_data]
     for key, coro in zip(keys, coros):
