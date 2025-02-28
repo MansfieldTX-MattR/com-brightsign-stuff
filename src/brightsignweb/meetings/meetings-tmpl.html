@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link id="update-url" href="{{ update_url }}">
+        <link id="update-url" href="{{ update_url }}" data-update-interval="{{ update_interval }}">
         <link rel="stylesheet" href="{{ 'meetings/style.css'|static }}">
         {% if max_items %}
         <style>
@@ -14,14 +14,16 @@
     <body>
         <main id="main">
             <h1>{{ page_title }}</h1>
-            {% include 'meetings/includes/feed.html' %}
+            {% set _feed_template = feed_template if feed_template is defined else 'meetings/includes/feed.html' %}
+            {% include _feed_template with context %}
         </main>
         <script type="text/javascript">
             window.stopUpdate = false;
             const feedUrlElem = document.getElementById('update-url');
             const feedUrl = new URL(feedUrlElem.href);
-            const updateInterval = 60000;
-
+            const updateInterval = feedUrlElem.dataset.updateInterval ?
+                parseInt(feedUrlElem.dataset.updateInterval) : 60000;
+            console.log('updateInterval', updateInterval);
             const contentElem = document.querySelector('.item-container');
 
             if (window.location.host == 'localhost:8080'){
@@ -41,13 +43,13 @@
                 const buildDate = parseInt(newContainer.dataset.buildDate);
                 const curBuildDate = parseInt(contentElem.dataset.buildDate);
                 if (buildDate == curBuildDate){
-                    console.log('buildDates match');
+                    console.log('buildDates match: ', buildDate);
                     return;
                 }
                 const newElems = doc.querySelectorAll(".item-container > *");
                 contentElem.replaceChildren(...newElems);
                 contentElem.dataset.buildDate = buildDate;
-                console.log('updated');
+                console.log('updated, new buildDate: ', buildDate);
             }
 
             function fetchAndUpdate(){
@@ -58,8 +60,11 @@
                     window.setTimeout(fetchAndUpdate, updateInterval)
                 );
             }
-
-            window.setTimeout(fetchAndUpdate, updateInterval);
+            if (updateInterval > 0) {
+                window.setTimeout(fetchAndUpdate, updateInterval);
+            } else {
+                console.log('updateInterval is 0, not updating');
+            }
         </script>
     </body>
 </html>

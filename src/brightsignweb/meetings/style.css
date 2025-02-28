@@ -9,6 +9,9 @@ body{
     color: white;
     overflow-y: hidden;
 }
+body.no-overflow-disable{
+    overflow-y: auto;
+}
 #main,.item-container,.feed-list-item,.feed-list-item-custom,.item-date-times{
     display: flex;
     flex-direction: column;
@@ -33,17 +36,28 @@ body{
     padding-right: 1em;
     border-radius: 1em;
 }
+.feed-list-item.item-live{
+    background-color: rgb(122 71 255 / 27%);
+    border-color: rgb(247 247 247 / 80%);
+    border-width: 1px;
+    border-style: solid;
+}
 .item-date-times{
     display: flex;
     flex-direction: row;
     padding-bottom: 1em;
     font-size: 1.2em;
+    max-height: 1.2em;
 }
 .item-date{
     padding-right: 1em;
 }
 .item-time{
     padding-left: 1em;
+}
+.item-date-times .item-live{
+    font-weight: 800;
+    font-size: 1.2em;
 }
 section.item-description{
     padding-left: 1em;

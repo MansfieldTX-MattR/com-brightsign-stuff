@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from . import rss_feeds
 from . import weather
 from . import requests
+from . import civicplus
 from .localstorage import UpdateTaskGroup
 from .types import *
 
@@ -35,7 +36,7 @@ def init_func(argv):
     jinja_env.filters['static'] = static_filter
     for p in STATIC_DIRS:
         routes.static(f'/static/{p.name}', p)
-    for r in [routes, rss_feeds.routes, weather.routes]:
+    for r in [routes, rss_feeds.routes, weather.routes, civicplus.routes]:
         app.add_routes(r)
     app.on_cleanup.append(requests.on_cleanup)
     app[UPDATE_TASK_GROUP_KEY] = t = UpdateTaskGroup(app)

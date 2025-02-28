@@ -1,0 +1,109 @@
+{% macro get_dt_iso(dt) -%}{%- if dt -%}{{ dt.isoformat() }}{%- endif -%}{%- endmacro %}
+{% macro get_dt_fmt(dt) -%}{%- if dt -%}{{ dt.strftime('%Y-%m-%dT%H:%M') }}{%- endif -%}{%- endmacro %}
+
+{% macro option_el(value, label, selected_value) -%}
+  <option value="{{ value }}"{% if value == selected_value %} selected{% endif %}>{{ label }}</option>
+{%- endmacro %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="{{ 'meetings/style.css'|static }}">
+</head>
+<body class="no-overflow-disable">
+  {% set start_dt = span_params['start_dt'] %}
+  {% set end_dt = span_params['end_dt'] %}
+  {% set span_count = span_params['span_count'] %}
+  {% set span = span_params['span'] %}
+  {% set use_span = span_params['use_span'] %}
+  <main id="main">
+    <section class="date-range-form">
+      <form id="date_range_form" method="get">
+        <fieldset>
+          <legend>Date Range</legend>
+          <label for="start_date_input">Start Date:</label>
+          <input
+            type="datetime-local"
+            id="start_date_input"
+            name="start_dt"
+            value="{{ get_dt_fmt(start_dt) }}"
+            data-isoformat="{{ get_dt_iso(start_dt) }}"
+          >
+
+          <label for="end_date_input">End Date:</label>
+          <input
+            type="datetime-local"
+            id="end_date_input"
+            name="end_dt"
+            value="{{ get_dt_fmt(end_dt) }}"
+            data-isoformat="{{ get_dt_iso(end_dt) }}"
+          >
+        </fieldset>
+
+        <fieldset>
+          <legend>Span</legend>
+
+          <label for="span_count_input">Span Count:</label>
+          <input
+            type="number"
+            id="span_count_input"
+            name="span_count"
+            value="{{ span_count }}"
+            data-value="{{ span_count }}"
+          >
+
+          <label for="use_span_input">Use Span:</label>
+          <input
+            type="checkbox"
+            id="use_span_input"
+            name="use_span"
+            {% if use_span %} checked{% endif %}
+          >
+
+          <label for="time_span_input">Time Span:</label>
+          <select id="time_span_input" name="time_span" value="{{ span }}" data-value="{{ span }}">
+            {{ option_el('day', 'Day', span) }}
+            {{ option_el('week', 'Week', span) }}
+            {{ option_el('month', 'Month', span) }}
+          </select>
+        </fieldset>
+        <input type="submit" value="Submit">
+        <input type="reset" value="Reset">
+      </form>
+    </section>
+    <section class="event-list">
+      <h1>{{ page_title }}</h1>
+      <div class="">
+        {% set _f_item_template = feed_item_template if feed_item_template is defined else 'meetings/includes/feed-item.html' %}
+        {% for item in item_iter %}
+          {% include _f_item_template %}
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+  <script type="text/javascript">
+    document.getElementById('date_range_form').addEventListener('submit', function(e){
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const startDt = new Date(formData.get('start_dt'));
+      const endDt = new Date(formData.get('end_dt'));
+      formData.set('start_dt', startDt.toISOString());
+      formData.set('end_dt', endDt.toISOString());
+      const useSpan = formData.get('use_span') === 'on';
+      if (useSpan) {
+        formData.delete('end_dt');
+      }
+      const searchParams = new URLSearchParams(formData);
+      const url = new URL(window.location.href);
+      url.search = searchParams.toString();
+      window.location.href = url.toString();
+    });
+    document.getElementById('date_range_form').addEventListener('reset', function(e){
+      e.preventDefault();
+      const url = new URL(window.location.href);
+      url.search = '';
+      window.location.href = url.toString();
+    });
+  </script>
+</body>
+</html>
