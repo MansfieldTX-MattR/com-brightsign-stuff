@@ -5,9 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "brightsign-stuff"
 requires-python = ">=3.7"
-# dependencies = [
-#     "aiohttp","aiohttp-jinja2","python-dotenv","loguru","pyquery"
-# ]
+dependencies = [
+    "aiohttp", "aiohttp-jinja2", "python-dotenv",
+    "loguru", "pyquery", "aiofiles", "json-object-factory",
+    "tzdata; platform_system=='Windows'",
+]
 version = "0.0.1"
 
 [tool.setuptools.packages.find]
@@ -18,3 +20,8 @@ where = ["src"]
 "brightsignweb.meetings" = ["*.js", "*.css", "*.svg"]
 "brightsignweb.veterans" = ["*.js", "*.css", "*.svg"]
 "brightsignweb.weather2" = ["*.js", "*.css", "*.svg"]
+
+[dependency-groups]
+dev = [
+    "ipython>=7.34.0",
+]
