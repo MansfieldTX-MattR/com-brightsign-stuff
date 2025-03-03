@@ -402,6 +402,7 @@ async def get_forecast_data_html(request):
 @logger.catch(reraise=True)
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
+    await get_geo_coords(app)
     tg = app[UPDATE_TASK_GROUP_KEY]
     keys = ['weather_data', 'weather_forecast']
     coros = [_fetch_weather_data, _fetch_forecast_data]
