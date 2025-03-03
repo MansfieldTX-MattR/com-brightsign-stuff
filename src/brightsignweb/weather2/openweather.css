@@ -112,13 +112,14 @@ img.condition{
 #lastUpdateContainer{
     margin-left: auto;
     margin-right: auto;
-    padding-top: 4em;
+    padding-top: 1em;
     border-spacing: 0px;
 }
 #lastUpdateContainer td,th{
     border-width: 1px;
     border-style: solid;
     border-color:#d5d5d5;
+    background-color: rgba(0,0,0,.35);
     padding: .5em;
 }
 #lastUpdateContainer th{
