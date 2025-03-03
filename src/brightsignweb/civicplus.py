@@ -41,22 +41,30 @@ routes = web.RouteTableDef()
 
 
 class TimezoneError(Exception):
-    pass
+    """Base exception for timezone errors.
+    """
 
 class TimezoneUnawareError(TimezoneError):
-    pass
+    """Exception raised when a datetime is expected to be timezone-aware but is not.
+    """
 
 class TimezoneNotSetError(TimezoneError):
-    pass
+    """Exception raised when a timezone is expected to be set but is not.
+    """
+
 
 
 class Timespan(enum.Enum):
-    DAY = 1
-    WEEK = 7
-    MONTH = 30
+    """
+    """
+    DAY = 1     #: One Day
+    WEEK = 7    #: One Week
+    MONTH = 30  #: One Month
 
     @classmethod
     def from_str(cls, s: str) -> Timespan:
+        """Get a member by name (case-insensitive)
+        """
         if s.upper() in cls.__members__:
             return cls[s.upper()]
         raise KeyError(f'Invalid Timespan: {s}')
@@ -85,6 +93,17 @@ def get_timespan(
     span_count: int = 1,
     start_day_of_week: calendar.Day = calendar.SUNDAY,
 ) -> tuple[datetime.datetime, datetime.datetime]:
+    """Get a timespan based on the given span and start datetime.
+
+    Arguments:
+        span: The timespan to use.
+        start_dt: The start datetime. If None, the current time is used.
+        span_count: The number of *span* values in the timespan.
+        start_day_of_week: The day of the week to start the week on.
+
+    Returns:
+        A tuple of the start and end datetimes for the timespan.
+    """
     local_tz = CivicPlusItem.LOCAL_TZ
     if local_tz is None:
         raise TimezoneNotSetError('LOCAL_TZ must be set before getting timespan')
@@ -124,6 +143,8 @@ def get_timespan(
 
 @dataclass
 class CivicPlusItem(DataclassSerialize):
+    """A Civic Plus event
+    """
     id: EventId
     title: str
     pub_date: datetime.datetime
@@ -181,12 +202,16 @@ class CivicPlusItem(DataclassSerialize):
 
     @property
     def start_datetime(self) -> datetime.datetime:
+        """The actual start datetime of the event.
+        """
         if self.start_time < self.event_date:
             return self.event_date
         return self.start_time
 
     @property
     def end_datetime(self) -> datetime.datetime:
+        """The projected end datetime of the event.
+        """
         if self.end_time >= self.event_date:
             return self.end_time
         td = self.end_time - self.start_time
@@ -200,6 +225,8 @@ class CivicPlusItem(DataclassSerialize):
         return datetime.timedelta(hours=h, minutes=m)
 
     def is_hidden(self, now: datetime.datetime|None = None) -> bool:
+        """Get whether the event should be hidden
+        """
         if not self.is_published:
             return True
         if self.is_live:
@@ -215,7 +242,8 @@ class CivicPlusItem(DataclassSerialize):
 
     @classmethod
     def from_json(cls, json_data: dict[str, Any]) -> Self:
-
+        """Parse the json data into a CivicPlusItem instance.
+        """
         def parse_dt_str(s: str) -> datetime.datetime:
             if '+' not in s and '-' not in s:
                 # if no timezone info, assume it's in local timezone
@@ -284,6 +312,8 @@ CPItemDict = dict[EventId, CivicPlusItem]
 
 @dataclass
 class CivicPlusItems(DataclassSerialize):
+    """Container for :class:`CivicPlusItem` instances.
+    """
     items: list[CivicPlusItem]
     build_date: datetime.datetime
     items_by_id: CPItemDict = field(init=False)
@@ -364,6 +394,8 @@ async def get_civicplus_events(
     start_dt: datetime.datetime,
     end_dt: datetime.datetime,
 ) -> list[CivicPlusItem]:
+    """Get a list of :class:`CivicPlusItem` instances for the given timespan.
+    """
     if CivicPlusItem.LOCAL_TZ is None:
         tz = app[LOCAL_TIMEZONE_KEY]
         CivicPlusItem.set_local_tz(tz)
@@ -427,6 +459,8 @@ class EventMeetingsContext(EventListContext):
 
 
 class CPViewBase[Ct: (BaseViewContext)](web.View, ABC):
+    """Base class for CivicPlus views.
+    """
     template_name: ClassVar[str]
     page_tile: ClassVar[str]
 
@@ -453,7 +487,8 @@ class CPViewBase[Ct: (BaseViewContext)](web.View, ABC):
 class CPEventListViewBase[
     Ct: (EventListContext, EventMeetingsContext)
 ](CPViewBase[Ct], ABC):
-
+    """Base class for CivicPlus event list views.
+    """
     max_items: int|None = None
 
     @abstractmethod
@@ -504,6 +539,8 @@ class CPEventListViewBase[
 
 @routes.view('/civicplus/events')
 class CPEventListView(CPEventListViewBase['EventListContext']):
+    """A list view for CivicPlus events with a form for filtering.
+    """
     template_name = 'meetings/civicplus-events.html'
     page_tile = 'CivicPlus Events'
 
@@ -541,6 +578,8 @@ class CPEventListView(CPEventListViewBase['EventListContext']):
 
 
 class CPMeetingsViewBase(CPEventListViewBase['EventMeetingsContext']):
+    """Base class to display upcoming CivicPlus events.
+    """
     template_name = 'meetings/meetings-tmpl.html'
     page_tile = 'Upcoming Events'
     update_url = URL('/civicplus/meetings/feed-items')
@@ -592,28 +631,12 @@ class CPMeetingsViewBase(CPEventListViewBase['EventMeetingsContext']):
 
 @routes.view('/civicplus/meetings')
 class CPMeetingsView(CPMeetingsViewBase):
-    pass
+    """List view for upcoming CivicPlus events.
+    """
 
 
 @routes.view('/civicplus/meetings/feed-items')
 class CPMeetingsRssView(CPMeetingsViewBase):
+    """List view used by :class:`CPMeetingsView` to update items
+    """
     template_name = 'meetings/includes/feed.html'
-
-
-# async def log_events(base_path: PathLike):
-#     tz = ZoneInfo('US/Central')
-#     CivicPlusItem.set_local_tz(tz)
-#     now = get_now(tz)
-#     start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
-#     end_dt = start_dt + datetime.timedelta(days=1)
-#     async with ClientSession() as session:
-#         item_list = await _get_civicplus_events(session, start_dt, end_dt)
-#     items = CivicPlusItems(items=item_list, build_date=now)
-#     dt_fmt = '%Y%m%d_%H%M%S'
-#     filename = Path(base_path) / f'events-{now.strftime(dt_fmt)}.json'
-#     items.save(filename)
-
-# if __name__ == '__main__':
-#     base_path = Path.cwd() / 'civicplus_events'
-#     base_path.mkdir(exist_ok=True)
-#     asyncio.run(log_events(base_path))
