@@ -23,7 +23,7 @@
                 {% include 'weather2/includes/weather-forecast.html' %}
             </div>
         </main>
-        <table id="lastUpdateContainer">
+        <table id="lastUpdateContainer" class="hidden">
             <tr>
                 <th scope="row">Conditions Updated</th>
                 <td class="current-lastUpdate"></td>
@@ -56,6 +56,12 @@
         <script src="{{ 'weather2/openweather.js'|static }}"></script>
         <script type="text/javascript">
             (function(){
+                const urlParams = new URLSearchParams(window.location.search);
+                const debug = urlParams.has('debug');
+                if (debug){
+                    document.getElementById('lastUpdateContainer').classList.remove('hidden');
+                    document.getElementById('info').classList.remove('hidden');
+                }
                 const dateFmt = new Intl.DateTimeFormat(
                     'en-US',
                     {
