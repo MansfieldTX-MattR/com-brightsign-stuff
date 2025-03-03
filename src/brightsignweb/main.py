@@ -1,3 +1,4 @@
+from typing import cast
 from loguru import logger
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -14,7 +15,7 @@ from . import civicplus
 from .localstorage import UpdateTaskGroup
 from .types import *
 
-PROJECT_ROOT = importlib.resources.files(__name__.split('.')[0])
+PROJECT_ROOT = cast(Path, importlib.resources.files(__name__.split('.')[0]))
 
 TEMPLATE_DIR = PROJECT_ROOT
 STATIC_ROOT = PROJECT_ROOT
