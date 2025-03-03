@@ -61,10 +61,11 @@ async def get_rss_tmpl_context(request, storage_key):
             app_item.update_evt.set()
             if app_item.item is None:
                 await app_item.notify.wait()
+                assert app_item.item is not None
         else:
             logger.debug(f'using cache for {storage_key}')
     max_items = request.query.get('maxItems')
-
+    assert app_item.item is not None
     feed: Feed = app_item.item
     context = {'rss_feed':app_item.item}
     if max_items is not None:
@@ -175,6 +176,7 @@ async def custom_feed_item_post(request: web.Request):
     app_item, created = await get_or_create_app_item(request.app, feed_name)
 
     async with app_item:
+        assert app_item.item is not None
         feed: Feed = app_item.item
         try:
             feed.add_custom_item(feed_item)

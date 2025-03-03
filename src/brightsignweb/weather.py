@@ -253,7 +253,7 @@ def average_forecast_data(forecast_data):
 
 async def get_geo_coords(app: web.Application) -> tuple[float, float]:
     app_item = await get_app_item(app, 'latlon')
-    if app_item is not None:
+    if app_item is not None and app_item.item is not None:
         coords = app_item.item
         logger.debug('using cached geo coords')
         return coords
@@ -275,13 +275,14 @@ async def get_geo_coords(app: web.Application) -> tuple[float, float]:
 async def get_forecast_context_data(request):
     app_item, created = await get_or_create_app_item(request.app, 'weather_forecast')
     async with app_item:
-        if created or app_item.expired:
+        if created or app_item.expired or app_item.item is None:
             logger.debug(f'trigger update_evt for {app_item.key}')
             app_item.update_evt.set()
-            if created:
+            if created or app_item.item is None:
                 await app_item.notify.wait()
         else:
             logger.debug('using cached forecast')
+        assert app_item.item is not None
         return {'weather_forecast':app_item.item}
 
 async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
@@ -318,13 +319,14 @@ async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
 async def get_weather_context_data(request):
     app_item, created = await get_or_create_app_item(request.app, 'weather_data')
     async with app_item:
-        if created or app_item.expired:
+        if created or app_item.expired or app_item.item is None:
             logger.debug(f'trigger update_evt for {app_item.key}')
             app_item.update_evt.set()
-            if created:
+            if created or app_item.item is None:
                 await app_item.notify.wait()
         else:
             logger.debug('using cached weather')
+        assert app_item.item is not None
         return {'weather_data':app_item.item}
 
 async def _fetch_weather_data(app: web.Application, app_item: AppItem):
