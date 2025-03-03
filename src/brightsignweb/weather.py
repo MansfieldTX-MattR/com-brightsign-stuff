@@ -251,6 +251,7 @@ def average_forecast_data(forecast_data):
     return daily
 
 
+@logger.catch(reraise=True)
 async def get_geo_coords(app: web.Application) -> tuple[float, float]:
     app_item = await get_app_item(app, 'latlon')
     if app_item is not None and app_item.item is not None:
@@ -271,7 +272,8 @@ async def get_geo_coords(app: web.Application) -> tuple[float, float]:
         await set_app_item(app, 'latlon', coords)
         return coords
 
-@logger.catch
+
+@logger.catch(reraise=True)
 async def get_forecast_context_data(request):
     app_item, created = await get_or_create_app_item(request.app, 'weather_forecast')
     async with app_item:
@@ -285,6 +287,8 @@ async def get_forecast_context_data(request):
         assert app_item.item is not None
         return {'weather_forecast':app_item.item}
 
+
+@logger.catch(reraise=True)
 async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
     now = datetime.datetime.now()
     logger.info('retreiving forecast data')
@@ -316,6 +320,7 @@ async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
         await app_item.update(app, item=data, dt=dt, delta=FORECAST_UPDATE_DELTA)
 
 
+@logger.catch(reraise=True)
 async def get_weather_context_data(request):
     app_item, created = await get_or_create_app_item(request.app, 'weather_data')
     async with app_item:
@@ -349,6 +354,7 @@ async def _fetch_weather_data(app: web.Application, app_item: AppItem):
         await app_item.update(app, item=data, dt=dt, delta=WEATHER_UPDATE_DELTA)
 
 
+@logger.catch(reraise=True)
 async def get_context_data(request):
     coros = [
         get_weather_context_data(request),
@@ -358,6 +364,8 @@ async def get_context_data(request):
     for fut in asyncio.as_completed(coros):
         r = await fut
         result.update(r)
+    assert 'weather_data' in result
+    assert 'weather' in result['weather_data'], f'{result=}'
     return result
 
 @routes.get('/weather2')
@@ -391,7 +399,7 @@ async def get_forecast_data_html(request):
     data['include_json_data'] = True
     return data
 
-
+@logger.catch(reraise=True)
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
     tg = app[UPDATE_TASK_GROUP_KEY]

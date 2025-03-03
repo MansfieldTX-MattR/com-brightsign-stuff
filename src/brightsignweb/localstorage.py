@@ -15,6 +15,8 @@ from .serialization import DataclassSerialize
 
 STORAGE_FILE = Path.home() / '.config' / 'brightsignweb' / 'localstorage.json'
 
+
+@logger.catch(reraise=True)
 async def _read() -> dict[str, AppItem]:
     if not STORAGE_FILE.exists():
         return {}
@@ -22,6 +24,7 @@ async def _read() -> dict[str, AppItem]:
         s = await f.read()
     return jsonfactory.loads(s)
 
+@logger.catch(reraise=True)
 async def _write(app_items: dict[str, AppItem]):
     STORAGE_FILE.parent.mkdir(parents=True, exist_ok=True)
     s = jsonfactory.dumps(app_items, indent=2)
@@ -175,7 +178,7 @@ class UpdateTask:
             self.update_evt.set()
             await t
 
-    @logger.catch
+    @logger.catch(reraise=True)
     async def _loop(self):
         while self._running:
             await self.update_evt.wait()

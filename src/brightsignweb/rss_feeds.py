@@ -189,7 +189,7 @@ async def custom_feed_item_post(request: web.Request):
     return web.Response(text='ok')
 
 
-
+@logger.catch(reraise=True)
 async def init_app(app: web.Application):
     logger.debug('weather.init_app()')
     tg = app[UPDATE_TASK_GROUP_KEY]
