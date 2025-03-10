@@ -35,6 +35,7 @@ body.no-overflow-disable{
     padding-left: 1em;
     padding-right: 1em;
     border-radius: 1em;
+    box-sizing: border-box;
 }
 .feed-list-item.item-live{
     background-color: rgb(122 71 255 / 27%);
