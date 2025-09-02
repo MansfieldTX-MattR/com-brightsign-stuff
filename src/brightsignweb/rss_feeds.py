@@ -1,17 +1,27 @@
+from __future__ import annotations
+from typing import TypedDict, NotRequired, Iterable
 import datetime
 from aiohttp import web
 import aiohttp_jinja2
 from loguru import logger
 
-from .feedparser import Feed, MeetingsFeed, CalendarFeed, LegistarFeed, CustomFeedItem
+from .feedparser import (
+    Feed, MeetingsFeed, CalendarFeed, LegistarFeed, CustomFeedItem,
+    FeedItem, MeetingsFeedItem, CalendarFeedItem, LegistarFeedItem,
+)
 from . import requests
 from .localstorage import get_or_create_app_item, AppItem
-from .types import *
+from .types import FeedName, FeedNames, UPDATE_TASK_GROUP_KEY
 
 
 UPDATE_DELTA = datetime.timedelta(minutes=5)
 
-FEED_INFO = {
+class _FeedInfo[T: Feed](TypedDict):
+    url: str
+    parser_cls: type[T]
+
+
+FEED_INFO: dict[FeedName, _FeedInfo] = {
     'meetings_feed':{
         'url':'https://www.mansfieldtexas.gov/RSSFeed.aspx?ModID=58&CID=Public-Meetings-24',
         'parser_cls':MeetingsFeed,
@@ -47,11 +57,33 @@ async def rss_calendar(request):
 
 @routes.get('/rss/legistar.xml')
 async def rss_legistar(request):
-    resp_text = await get_rss_feed(request.app, FEED_INFO['legistar']['url'])
+    resp_text = await get_rss_feed(request.app, FEED_INFO['legistar_feed']['url'])
     return web.Response(text=resp_text, content_type='text/xml')
 
-async def get_rss_tmpl_context(request, storage_key):
-    app_item, created = await get_or_create_app_item(request.app, storage_key)
+
+
+class TemplateContextBase[Ft: (Feed), It: (FeedItem)](TypedDict):
+    rss_feed: Ft
+    max_items: NotRequired[int]|None
+    item_iter: Iterable[It|CustomFeedItem]
+    page_title: NotRequired[str]
+    update_url: NotRequired[str]
+
+class TemplateContext[Ft: (Feed), It: (FeedItem)](TemplateContextBase[Ft, It]):
+    page_title: str
+    update_url: str
+
+
+
+async def get_rss_tmpl_context[
+    Ft: (Feed), It: (FeedItem)
+](
+    request: web.Request,
+    storage_key: FeedName,
+    cls: type[Ft],
+    item_cls: type[It]
+) -> TemplateContextBase[Ft, It]:
+    app_item, created = await get_or_create_app_item(request.app, storage_key, cls)
     async with app_item:
         if app_item.delta is None:
             app_item.delta = UPDATE_DELTA
@@ -66,18 +98,25 @@ async def get_rss_tmpl_context(request, storage_key):
             logger.debug(f'using cache for {storage_key}')
     max_items = request.query.get('maxItems')
     assert app_item.item is not None
-    feed: Feed = app_item.item
-    context = {'rss_feed':app_item.item}
+    feed = app_item.item
+    item_iter: Iterable[It|CustomFeedItem]
     if max_items is not None:
-        context['max_items'] = int(max_items)
-        context['item_iter'] = feed.iter_limited(int(max_items))
+        max_items = int(max_items)
+        item_iter = feed.iter_limited(max_items)
     else:
-        context['item_iter'] = feed
-    return context
+        item_iter = feed
+    return {
+        'rss_feed':feed,
+        'max_items':max_items,
+        'item_iter':item_iter,
+    }
 
-async def _fetch_rss_feed(app: web.Application, app_item: AppItem):
+
+async def _fetch_rss_feed(app: web.Application, app_item: AppItem[FeedName, Feed]) -> None:
     logger.info(f'retrieving {app_item.key}')
-    feed_info = FEED_INFO[app_item.key]
+    key = str(app_item.key)
+    assert key in FeedNames
+    feed_info = FEED_INFO[key]
     resp_text = await get_rss_feed(app, feed_info['url'])
     if app_item.item is None:
         feed = feed_info['parser_cls'].from_xml_str(resp_text)
@@ -91,50 +130,62 @@ async def _fetch_rss_feed(app: web.Application, app_item: AppItem):
 
 @routes.get('/rss/meetings.html')
 @aiohttp_jinja2.template('meetings/meetings-tmpl.html')
-async def rss_meetings_html(request: web.Request):
-    context = await get_rss_tmpl_context(request, 'meetings_feed')
-    context.update(dict(
-        page_title='Upcoming Meetings',
-        update_url='/rss/meetings/feed-items',
-    ))
-    return context
+async def rss_meetings_html(
+    request: web.Request
+) -> TemplateContext[MeetingsFeed, MeetingsFeedItem]:
+    context = await get_rss_tmpl_context(request, 'meetings_feed', MeetingsFeed, MeetingsFeedItem)
+    return {
+        'page_title':'Upcoming Meetings',
+        'update_url':'/rss/meetings/feed-items',
+        **context,
+    }
 
 @routes.get('/rss/calendar.html')
 @aiohttp_jinja2.template('meetings/meetings-tmpl.html')
-async def rss_calendar_html(request: web.Request):
-    context = await get_rss_tmpl_context(request, 'calendar_feed')
-    context.update(dict(
-        page_title='Calendar Events',
-        update_url='/rss/calendar/feed-items',
-    ))
-    return context
+async def rss_calendar_html(
+    request: web.Request
+) -> TemplateContext[CalendarFeed, CalendarFeedItem]:
+    context = await get_rss_tmpl_context(request, 'calendar_feed', CalendarFeed, CalendarFeedItem)
+    return {
+        'page_title':'Calendar Events',
+        'update_url':'/rss/calendar/feed-items',
+        **context,
+    }
 
 @routes.get('/rss/legistar.html')
 @aiohttp_jinja2.template('meetings/meetings-tmpl.html')
-async def rss_legistar_html(request: web.Request):
-    context = await get_rss_tmpl_context(request, 'legistar_feed')
-    context.update(dict(
-        page_title='Upcoming Meetings',
-        update_url=f'/rss/legistar/feed-items?{request.query_string}',
-    ))
-    return context
+async def rss_legistar_html(
+    request: web.Request
+) -> TemplateContext[LegistarFeed, LegistarFeedItem]:
+    context = await get_rss_tmpl_context(request, 'legistar_feed', LegistarFeed, LegistarFeedItem)
+    return {
+        'page_title':'Legistar Calendar',
+        'update_url':'/rss/legistar/feed-items',
+        **context,
+    }
 
 @routes.get('/rss/meetings/feed-items')
 @aiohttp_jinja2.template('meetings/includes/feed.html')
-async def rss_meetings_feed_items(request: web.Request):
-    return await get_rss_tmpl_context(request, 'meetings_feed')
+async def rss_meetings_feed_items(
+    request: web.Request
+) -> TemplateContextBase[MeetingsFeed, MeetingsFeedItem]:
+    return await get_rss_tmpl_context(request, 'meetings_feed', MeetingsFeed, MeetingsFeedItem)
 
 
 @routes.get('/rss/calendar/feed-items')
 @aiohttp_jinja2.template('meetings/includes/feed.html')
-async def rss_calendar_feed_items(request: web.Request):
-    return await get_rss_tmpl_context(request, 'calendar_feed')
+async def rss_calendar_feed_items(
+    request: web.Request
+) -> TemplateContextBase[CalendarFeed, CalendarFeedItem]:
+    return await get_rss_tmpl_context(request, 'calendar_feed', CalendarFeed, CalendarFeedItem)
 
 
 @routes.get('/rss/legistar/feed-items')
 @aiohttp_jinja2.template('meetings/includes/feed.html')
-async def rss_legistar_feed_items(request: web.Request):
-    return await get_rss_tmpl_context(request, 'legistar_feed')
+async def rss_legistar_feed_items(
+    request: web.Request
+) -> TemplateContextBase[LegistarFeed, LegistarFeedItem]:
+    return await get_rss_tmpl_context(request, 'legistar_feed', LegistarFeed, LegistarFeedItem)
 
 @routes.get('/{feed_name}/custom-feed-item')
 @aiohttp_jinja2.template('meetings/custom-feed-item-form.html')
@@ -172,8 +223,8 @@ async def custom_feed_item_post(request: web.Request):
 
     feed_item = CustomFeedItem(**kw)
     feed_name = request.match_info['feed_name']
-    assert feed_name in ['meetings_feed', 'calendar_feed', 'legistar_feed']
-    app_item, created = await get_or_create_app_item(request.app, feed_name)
+    assert feed_name in FeedNames
+    app_item, created = await get_or_create_app_item(request.app, feed_name, cls=Feed)
 
     async with app_item:
         assert app_item.item is not None
