@@ -204,7 +204,7 @@ class CivicPlusItem(DataclassSerialize):
     def start_datetime(self) -> datetime.datetime:
         """The actual start datetime of the event.
         """
-        if self.start_time < self.event_date:
+        if self.start_time <= self.event_date:
             return self.event_date
         return self.start_time
 
@@ -233,7 +233,7 @@ class CivicPlusItem(DataclassSerialize):
             return False
         if now is None:
             now = get_now()
-        return now > self.end_datetime
+        return now > self.start_datetime + datetime.timedelta(days=1)
 
     def _is_valid_dt(self, dt: datetime.datetime) -> bool:
         if not is_aware(dt):
