@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Container
+from typing import Self, Any
 import asyncio
 from pathlib import Path
 import datetime
@@ -15,9 +15,14 @@ from .serialization import DataclassSerialize
 
 STORAGE_FILE = Path.home() / '.config' / 'brightsignweb' / 'localstorage.json'
 
+type _AppItemKey = str | web.AppKey
+
+LS_LOCK_KEY = web.AppKey('localstorage_lock', asyncio.Lock)
+LS_ITEMS_KEY = web.AppKey('localstorage_items', dict[_AppItemKey, 'AppItem'])
+
 
 @logger.catch(reraise=True)
-async def _read() -> dict[str, AppItem]:
+async def _read() -> dict[_AppItemKey, AppItem]:
     if not STORAGE_FILE.exists():
         return {}
     async with aiofiles.open(STORAGE_FILE, 'r') as f:
@@ -25,34 +30,34 @@ async def _read() -> dict[str, AppItem]:
     return jsonfactory.loads(s)
 
 @logger.catch(reraise=True)
-async def _write(app_items: dict[str, AppItem]):
+async def _write(app_items: dict[_AppItemKey, AppItem]):
     STORAGE_FILE.parent.mkdir(parents=True, exist_ok=True)
     s = jsonfactory.dumps(app_items, indent=2)
     async with aiofiles.open(STORAGE_FILE, 'w') as f:
         await f.write(s)
 
 def _get_lock(app: web.Application) -> asyncio.Lock:
-    lock = app.get('localstorage_lock')
+    lock = app.get(LS_LOCK_KEY)
     if lock is None:
-        app['localstorage_lock'] = lock = asyncio.Lock()
+        app[LS_LOCK_KEY] = lock = asyncio.Lock()
     return lock
 
-async def _get_app_items(app: web.Application) -> dict[str, AppItem]:
-    items = app.get('localstorage_items')
+async def _get_app_items(app: web.Application) -> dict[_AppItemKey, AppItem]:
+    items = app.get(LS_ITEMS_KEY)
     if items is not None:
         return items
     async with _get_lock(app):
-        items = app.get('localstorage_items')
+        items = app.get(LS_ITEMS_KEY)
         if items is not None:
             return items
-        app['localstorage_items'] = items = await _read()
+        app[LS_ITEMS_KEY] = items = await _read()
     return items
 
 
 @dataclass
-class AppItem(DataclassSerialize):
-    key: str
-    item: Any
+class AppItem[_AppItemKey, T](DataclassSerialize):
+    key: _AppItemKey
+    item: T|None
     dt: datetime.datetime|None = None
     delta: datetime.timedelta|None = None
     dt_key: str|None = None
@@ -65,7 +70,7 @@ class AppItem(DataclassSerialize):
     def locked(self) -> bool:
         return self._lock.locked()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         await self._lock.acquire()
         return self
 
@@ -94,11 +99,16 @@ class AppItem(DataclassSerialize):
         return now >= next_update
 
     @classmethod
-    def from_json(cls, s: str) -> AppItem:
+    def from_json(cls, s: str) -> Self:
         return jsonfactory.loads(s)
 
-    def to_json(self) -> dict:
+    def to_json(self) -> str:
         return jsonfactory.dumps(self._serialize())
+
+    def _serialize(self) -> dict[str, Any]:
+        r = super()._serialize()
+        r['key'] = str(self.key)
+        return r
 
 
 class UpdateTaskGroup:
@@ -148,8 +158,8 @@ class UpdateTaskGroup:
         yield from self.tasks.values()
 
 
-class UpdateTask:
-    def __init__(self, app: web.Application, app_item: AppItem, update_coro) -> None:
+class UpdateTask[_AppItemKey, T]:
+    def __init__(self, app: web.Application, app_item: AppItem[_AppItemKey, T], update_coro) -> None:
         self.app = app
         self.app_item = app_item
         self.update_coro = update_coro
@@ -159,7 +169,7 @@ class UpdateTask:
         self._task = None
 
     @property
-    def key(self) -> str:
+    def key(self) -> _AppItemKey:
         return self.app_item.key
 
     async def open(self):
@@ -194,45 +204,51 @@ class UpdateTask:
         return f'<{self.__class__.__name__}: "{self}" (running={self._running})>'
 
     def __str__(self) -> str:
-        return self.key
+        return str(self.key)
 
 
 
-async def get_app_item(
+async def get_app_item[Kt: _AppItemKey, T](
     app: web.Application,
-    key: str,
+    key: Kt,
     dt: datetime.datetime|None = None,
-    delta: datetime.timedelta|None = None
-) -> AppItem|None:
+    delta: datetime.timedelta|None = None,
+    cls: type[T]|None = None
+) -> AppItem[Kt, T]|None:
     item_dict = await _get_app_items(app)
     return item_dict.get(key)
 
-async def get_or_create_app_item(app: web.Application, key: str) -> tuple[AppItem, bool]:
+async def get_or_create_app_item[Kt: _AppItemKey, T](
+    app: web.Application,
+    key: Kt,
+    cls: type[T]|None = None
+) -> tuple[AppItem[Kt, T], bool]:
     item_dict = await _get_app_items(app)
     created = False
     async with _get_lock(app):
         app_item = item_dict.get(key)
         if app_item is None:
-            app_item = AppItem(key=key, item=None)
+            app_item = AppItem[Kt, T](key=key, item=None)
             item_dict[key] = app_item
             created = True
     return app_item, created
 
-async def set_app_item(
+async def set_app_item[Kt: _AppItemKey, T](
     app: web.Application,
-    key: str,
-    item: Any,
+    key: Kt,
+    item: T,
     dt: datetime.datetime|None = None,
     delta: datetime.timedelta|None = None,
     dt_key: str|None = None
-):
+) -> AppItem[Kt, T]:
     if dt is None:
         dt = datetime.datetime.now()
     item_dict = await _get_app_items(app)
-    app_item = AppItem(key=key, dt=dt, delta=delta, item=item, dt_key=dt_key)
+    app_item = AppItem[Kt, T](key=key, dt=dt, delta=delta, item=item, dt_key=dt_key)
     async with _get_lock(app):
         item_dict[key] = app_item
         await _write(item_dict)
+    return app_item
 
 async def update_app_items(app: web.Application):
     item_dict = await _get_app_items(app)
