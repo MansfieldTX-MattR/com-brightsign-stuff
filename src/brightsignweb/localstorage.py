@@ -98,6 +98,44 @@ class AppItem[_AppItemKey, T](DataclassSerialize):
         next_update = dt + self.delta
         return now >= next_update
 
+    @property
+    def next_update(self) -> datetime.datetime|None:
+        if self.delta is None:
+            return None
+        if self.dt is None:
+            return datetime.datetime.now()
+        return self.dt + self.delta
+
+    @property
+    def next_update_seconds(self) -> float|None:
+        dt = self.next_update
+        if dt is None:
+            return None
+        now = datetime.datetime.now()
+        td = dt - now
+        return td.total_seconds()
+
+    async def wait_for_next_update(self):
+        evt_triggered = False
+        num_seconds = self.next_update_seconds
+        logger.info(f'AppItem "{self.key}" wait_for_next_update: {num_seconds=}')
+        try:
+            if num_seconds is None:
+                await self.update_evt.wait()
+                evt_triggered = True
+            else:
+                try:
+                    await asyncio.wait_for(self.update_evt.wait(), timeout=num_seconds)
+                    evt_triggered = True
+                except asyncio.TimeoutError:
+                    pass
+        finally:
+            self.update_evt.clear()
+        if evt_triggered:
+            logger.success(f'AppItem "{self.key}" updating via event trigger')
+        else:
+            logger.success(f'AppItem "{self.key}" updating without request')
+
     @classmethod
     def from_json(cls, s: str) -> Self:
         return jsonfactory.loads(s)
@@ -191,13 +229,18 @@ class UpdateTask[_AppItemKey, T]:
     @logger.catch(reraise=True)
     async def _loop(self):
         while self._running:
-            await self.update_evt.wait()
+            await self.app_item.wait_for_next_update()
             self.update_evt.clear()
             if not self._running:
                 break
             async with self.app_item:
                 logger.debug(f'update({self!r})')
-                await self.update_coro(app=self.app, app_item=self.app_item)
+                try:
+                    await self.update_coro(app=self.app, app_item=self.app_item)
+                except Exception as exc:
+                    logger.exception(exc)
+                    await asyncio.sleep(10)
+                    continue
                 self.notify.notify_all()
 
     def __repr__(self) -> str:
