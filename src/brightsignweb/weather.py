@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Literal
 import os
 import datetime
 from collections import Counter
@@ -18,6 +20,17 @@ API_KEY = os.environ['OPENWEATHERMAP_APIKEY']
 WEATHER_UPDATE_DELTA = datetime.timedelta(minutes=15)
 FORECAST_UPDATE_DELTA = datetime.timedelta(minutes=65)
 
+LatLonT = tuple[float, float]
+ForecastT = dict    # TODO: define this as a TypedDict
+WeatherDataT = dict # TODO: define this as a TypedDict
+
+LATLON_KEY = web.AppKey('latlon', LatLonT)
+FORECAST_KEY = web.AppKey('weather_forecast', ForecastT)
+WEATHER_DATA_KEY = web.AppKey('weather_data', WeatherDataT)
+
+LATLON_KEY_NAME = Literal['latlon']
+FORECAST_KEY_NAME = Literal['weather_forecast']
+WEATHER_DATA_KEY_NAME = Literal['weather_data']
 
 routes = web.RouteTableDef()
 
@@ -252,8 +265,9 @@ def average_forecast_data(forecast_data):
 
 
 @logger.catch(reraise=True)
-async def get_geo_coords(app: web.Application) -> tuple[float, float]:
-    app_item = await get_app_item(app, 'latlon')
+async def get_geo_coords(app: web.Application) -> LatLonT:
+    key: LATLON_KEY_NAME = 'latlon'
+    app_item = await get_app_item(app, key, cls=LatLonT)
     if app_item is not None and app_item.item is not None:
         coords = app_item.item
         logger.debug('using cached geo coords')
@@ -269,13 +283,14 @@ async def get_geo_coords(app: web.Application) -> tuple[float, float]:
         response.raise_for_status()
         data = await response.json()
         coords = (data['lat'], data['lon'])
-        await set_app_item(app, 'latlon', coords)
+        await set_app_item(app, key, coords)
         return coords
 
 
 @logger.catch(reraise=True)
-async def get_forecast_context_data(request):
-    app_item, created = await get_or_create_app_item(request.app, 'weather_forecast')
+async def get_forecast_context_data(request) -> ForecastT:
+    key: FORECAST_KEY_NAME = 'weather_forecast'
+    app_item, created = await get_or_create_app_item(request.app, key, cls=ForecastT)
     async with app_item:
         if created or app_item.expired or app_item.item is None:
             logger.debug(f'trigger update_evt for {app_item.key}')
@@ -289,7 +304,7 @@ async def get_forecast_context_data(request):
 
 
 @logger.catch(reraise=True)
-async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
+async def _fetch_forecast_data(app: web.Application, app_item: AppItem[FORECAST_KEY_NAME, ForecastT]):
     now = datetime.datetime.now()
     logger.info('retreiving forecast data')
     lat, lon = await get_geo_coords(app)
@@ -321,8 +336,9 @@ async def _fetch_forecast_data(app: web.Application, app_item: AppItem):
 
 
 @logger.catch(reraise=True)
-async def get_weather_context_data(request):
-    app_item, created = await get_or_create_app_item(request.app, 'weather_data')
+async def get_weather_context_data(request) -> WeatherDataT:
+    key: WEATHER_DATA_KEY_NAME = 'weather_data'
+    app_item, created = await get_or_create_app_item(request.app, key, cls=WeatherDataT)
     async with app_item:
         if created or app_item.expired or app_item.item is None:
             logger.debug(f'trigger update_evt for {app_item.key}')
@@ -334,7 +350,7 @@ async def get_weather_context_data(request):
         assert app_item.item is not None
         return {'weather_data':app_item.item}
 
-async def _fetch_weather_data(app: web.Application, app_item: AppItem):
+async def _fetch_weather_data(app: web.Application, app_item: AppItem[WEATHER_DATA_KEY_NAME, WeatherDataT]):
     logger.info('retreiving weather data')
     lat, lon = await get_geo_coords(app)
     query = {
