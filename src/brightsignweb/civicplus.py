@@ -324,6 +324,8 @@ class CivicPlusItems(DataclassSerialize):
         EventCategory('Historic Landmark Commission'),
         EventCategory('Mansfield Economic Development Corporation'),
         EventCategory('Mansfield Park Facilities Development Corporation'),
+        EventCategory('Zoning Board of Adjustments'),
+        EventCategory('Construction Codes Board of Adjustments and Appeals'),
     ]
 
     def __post_init__(self):
