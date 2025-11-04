@@ -1,0 +1,44 @@
+{%- macro date_fmt(dt) -%}{{ dt.strftime('%a %b %d, %Y') }}{%- endmacro -%}
+{%- macro time_fmt(dt) -%}{{ dt.strftime('%I:%M %p').lstrip('0') }}{%- endmacro -%}
+{%- with -%}
+{%- set start_date = date_fmt(item.start_datetime.astimezone(timezone)) -%}
+{%- set end_date = date_fmt(item.end_datetime.astimezone(timezone)) -%}
+{%- set start_time = time_fmt(item.start_datetime.astimezone(timezone)) -%}
+{%- set end_time = time_fmt(item.end_datetime.astimezone(timezone)) -%}
+{%- set is_live = item.is_live -%}
+<article
+  id="civicplus_item_{{ item.id }}"
+  class="feed-list-item{% if is_live %} item-live{% endif %}"
+  data-start-date="{{ start_date }}"
+  data-start-time="{{ start_time }}"
+  data-end-date="{{ end_date }}"
+  data-end-time="{{ end_time }}"
+  {% if item.address %}data-address="{{ item.address }}"{% endif %}
+>
+  <h2>{{ item.title }}</h2>
+  <section class="item-date-times">
+  {% if is_live %}
+    <div class="item-live">Currently Live</div>
+  {% else %}
+    <div class="item-date">{{ start_date }}</div>
+    <div class="item-time">{{ start_time }} to {{ end_time }}</div>
+  {% endif %}
+  </section>
+  {% if debug_items %}
+    <section class="item-description">
+      <dl class="dl-grid">
+        <dt>Category</dt>
+        <dd>{{ item.category_name }}</dd>
+        <dt>Published</dt>
+        <dd>{{ item.is_published }}</dd>
+        <dt>Show in Upcoming</dt>
+        <dd>{{ item.show_in_upcoming }}</dd>
+        <dt>Is Live Event</dt>
+        <dd>{{ item.is_live_event }}</dd>
+        <dt>Is Live</dt>
+        <dd>{{ item.is_live }}</dd>
+      </dl>
+    </section>
+  {% endif %}
+</article>
+{%- endwith -%}
