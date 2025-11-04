@@ -7,6 +7,7 @@ from aiohttp import web
 import jinja2
 import aiohttp_jinja2
 from dotenv import load_dotenv
+import click
 
 from . import rss_feeds
 from . import weather
@@ -57,3 +58,21 @@ def init_func(argv):
     app.on_startup.append(weather.init_app)
     app.on_startup.append(rss_feeds.init_app)
     return app
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+@click.option('-h', '--host', default='localhost', help='Host to bind the server to.')
+@click.option('-p', '--port', default=8080, help='Port to bind the server to.')
+def serve(host: str = 'localhost', port: int = 8080):
+    app = init_func()
+    web.run_app(app, host=host, port=port)
+
+
+if __name__ == '__main__':
+    load_dotenv()
+    cli()
