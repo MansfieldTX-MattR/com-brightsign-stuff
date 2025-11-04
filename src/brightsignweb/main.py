@@ -25,6 +25,11 @@ LOCAL_TIMEZONE = ZoneInfo(LOCAL_TIMEZONE_NAME)
 
 routes = web.RouteTableDef()
 
+@routes.get('/healthcheck')
+async def healthcheck(request: web.Request) -> web.Response:
+    return web.Response(text='OK')
+
+
 @routes.get('/signage')
 @aiohttp_jinja2.template('meetings/signage.html')
 async def signage_handler(request: web.Request) -> dict:
