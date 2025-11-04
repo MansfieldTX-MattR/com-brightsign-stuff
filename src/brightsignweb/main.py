@@ -25,6 +25,13 @@ LOCAL_TIMEZONE = ZoneInfo(LOCAL_TIMEZONE_NAME)
 
 routes = web.RouteTableDef()
 
+@routes.get('/signage')
+@aiohttp_jinja2.template('meetings/signage.html')
+async def signage_handler(request: web.Request) -> dict:
+    return {
+        'title': 'BrightSign Web Signage',
+    }
+
 
 def static_filter(path: str) -> str:
     path = path.lstrip('/')

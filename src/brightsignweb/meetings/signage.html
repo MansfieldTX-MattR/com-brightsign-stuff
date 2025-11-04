@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+:root {
+  --weather-vw: 65vw;
+  --weather-vh: 80vh;
+  --events-vw: 35vw;
+  --events-vh: 80vh;
+  --bottom-vh: 20vh;
+  --bottom-vw: 100vw;
+}
+.frame {
+  position: absolute;
+  border: none;
+}
+#weather-frame {
+  width: var(--weather-vw);
+  height: var(--weather-vh);
+  top: 0;
+  left: 0;
+}
+#events-frame {
+  width: var(--events-vw);
+  height: var(--events-vh);
+  top: 0;
+  right: 0;
+}
+#bottom-image {
+  width: var(--bottom-vw);
+  height: var(--bottom-vh);
+  bottom: 0;
+  left: 0;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: black;
+}
+
+</style>
+</head>
+
+<body>
+  <iframe
+    id="weather-frame"
+    class="frame"
+    src="/weather2"
+  ></iframe>
+  <iframe
+    id="events-frame"
+    class="frame"
+    src="/civicplus/meetings?span_count=8&max_items=4"
+  ></iframe>
+  <img
+    id="bottom-image"
+    class="frame"
+    src="{{ 'meetings/assets/blue-bg-with-logo-16bpp.png'|static }}"
+  >
+</body>
+</html>
