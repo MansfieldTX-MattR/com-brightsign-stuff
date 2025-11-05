@@ -6,7 +6,7 @@ let forecastModified = new Date().toUTCString();
 
 async function fetchWeather(lastModified=null){
     const url = document.getElementById('weather-data-url').href;
-    const headers = {};
+    const headers = {'Cache-Control': 'no-cache'};
     if (lastModified !== null){
         headers['If-Modified-Since'] = lastModified;
     }
@@ -25,7 +25,7 @@ async function fetchWeather(lastModified=null){
 
 async function fetchForecast(lastModified=null){
     const url = document.getElementById('forecast-data-url').href;
-    const headers = {};
+    const headers = {'Cache-Control': 'no-cache'};
     if (lastModified !== null){
         headers['If-Modified-Since'] = lastModified;
     }
