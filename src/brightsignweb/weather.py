@@ -394,7 +394,7 @@ async def check_last_modified(
     app_item = await get_app_item(request.app, key)
     if app_item is None or app_item.dt is None:
         return None, None
-    last_modified = app_item.dt
+    last_modified = timezone.as_timezone(app_item.dt, timezone.UTC)
     if 'If-Modified-Since' not in request.headers:
         return None, last_modified
     ims_str = request.headers['If-Modified-Since']
