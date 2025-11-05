@@ -21,6 +21,9 @@ class JinjaFilterContext(TypedDict):
 @jinja2.pass_context
 def static_filter(ctx: JinjaFilterContext, path: str) -> str:
     app = ctx['app']
+    return get_static_url(app, path)
+
+def get_static_url(app: web.Application, path: str) -> str:
     path = path.lstrip('/')
     prefix = app[STATIC_URL_PREFIX]
     return f'{prefix}/{path}'
