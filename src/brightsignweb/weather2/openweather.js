@@ -1,35 +1,52 @@
 const weatherUpdateInterval = 60000;
 window.stopWeather = false;
 
-async function fetchWeather(){
+async function fetchWeather(lastModified=null){
     const url = document.getElementById('weather-data-url').href;
-    const resp = await fetch(url);
+    const headers = {};
+    if (lastModified !== null){
+        headers['If-Modified-Since'] = lastModified;
+    }
+    const resp = await fetch(url, { headers });
+    if (resp.status === 304) {
+        return null;
+    }
     const htmlText = await resp.text();
     const parser = new DOMParser();
     return parser.parseFromString(htmlText, 'text/html');
 }
 
-async function fetchForecast(){
+async function fetchForecast(lastModified=null){
     const url = document.getElementById('forecast-data-url').href;
-    const resp = await fetch(url);
+    const headers = {};
+    if (lastModified !== null){
+        headers['If-Modified-Since'] = lastModified;
+    }
+    const resp = await fetch(url, { headers });
+    if (resp.status === 304) {
+        return null;
+    }
     const htmlText = await resp.text();
     const parser = new DOMParser();
     return parser.parseFromString(htmlText, 'text/html');
 }
 
-async function updateWeather(){
+async function updateWeather(lastModified=null){
     if (window.stopWeather){
-        return;
+        return false;
     }
     const scriptEl = document.getElementById('weather-json');
     const currentData = JSON.parse(scriptEl.textContent);
-    const weatherDoc = await fetchWeather();
+    const weatherDoc = await fetchWeather(lastModified);
+    if (weatherDoc === null) {
+        return false;
+    }
     const jsonScript = weatherDoc.getElementById('weather-json');
     const weatherData = JSON.parse(jsonScript.textContent);
     jsonScript.parentElement.removeChild(jsonScript);
     if (currentData.dt === weatherData.dt){
         console.log('dts match');
-        return;
+        return true;
     }
     console.log('updating weather: ', weatherData);
     scriptEl.textContent = jsonScript.textContent;
@@ -38,21 +55,25 @@ async function updateWeather(){
     const newElems = weatherDoc.querySelectorAll("body > *");
     currentDiv.replaceChildren(...newElems);
     showDt(currentDiv);
+    return true;
 }
 
-async function updateForecast(){
+async function updateForecast(lastModified=null){
     if (window.stopWeather){
-        return;
+        return false;
     }
     const scriptEl = document.getElementById('forecast-json');
     const currentData = JSON.parse(scriptEl.textContent);
-    const weatherDoc = await fetchForecast();
+    const weatherDoc = await fetchForecast(lastModified);
+    if (weatherDoc === null) {
+        return false;
+    }
     const jsonScript = weatherDoc.getElementById('forecast-json');
     const weatherData = JSON.parse(jsonScript.textContent);
     jsonScript.parentElement.removeChild(jsonScript);
     if (currentData.dt === weatherData.dt){
         console.log('dts match');
-        return;
+        return true;
     }
     console.log('updating forecast: ', weatherData);
     scriptEl.textContent = jsonScript.textContent;
@@ -61,6 +82,7 @@ async function updateForecast(){
     const newElems = weatherDoc.querySelectorAll("body > *");
     currentDiv.replaceChildren(...newElems);
     showDt(currentDiv);
+    return true;
 }
 
 function showDt(elem){
@@ -87,14 +109,27 @@ document.addEventListener("DOMContentLoaded", (e) => {
     });
 });
 
+let weatherModified = new Date().toUTCString();
+let forecastModified = new Date().toUTCString();
+
 function fetchAndUpdate(){
     if (window.stopWeather){
         return;
     }
-    updateWeather().then(
-        updateForecast().then(
-            window.setTimeout(fetchAndUpdate, weatherUpdateInterval)
-        )
+    updateWeather(weatherModified).then(
+        (modified) => {
+            if (modified) {
+                weatherModified = new Date().toUTCString();
+            }
+            updateForecast(forecastModified).then(
+                (modified) => {
+                    if (modified) {
+                        forecastModified = new Date().toUTCString();
+                    }
+                    window.setTimeout(fetchAndUpdate, weatherUpdateInterval);
+                }
+            );
+        }
     );
 }
 

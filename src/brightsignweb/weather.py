@@ -382,6 +382,28 @@ async def _fetch_weather_data(app: web.Application, app_item: AppItem[WEATHER_DA
         await app_item.update(app, item=data, dt=dt, delta=WEATHER_UPDATE_DELTA)
 
 
+async def check_last_modified(
+    request: web.Request,
+    key: WEATHER_DATA_KEY_NAME|FORECAST_KEY_NAME,
+) -> tuple[web.Response|None, datetime.datetime|None]:
+    def parse_dt_header(dt_str: str) -> datetime.datetime:
+        dt_fmt = '%a, %d %b %Y %H:%M:%S %Z'
+        dt = datetime.datetime.strptime(dt_str, dt_fmt)
+        return timezone.make_aware(dt, timezone.UTC)
+
+    app_item = await get_app_item(request.app, key)
+    if app_item is None or app_item.dt is None:
+        return None, None
+    last_modified = app_item.dt
+    if 'If-Modified-Since' not in request.headers:
+        return None, last_modified
+    ims_str = request.headers['If-Modified-Since']
+    ims_dt = parse_dt_header(ims_str)
+    if last_modified <= ims_dt:
+        return web.Response(status=304), last_modified
+    return None, last_modified
+
+
 @logger.catch(reraise=True)
 async def get_context_data(request):
     coros = [
@@ -409,11 +431,19 @@ async def get_weather_data_json(request):
     return web.json_response(data['weather_data'])
 
 @routes.get('/weather-data-html')
-@aiohttp_jinja2.template('weather2/includes/weather-current.html')
-async def get_weather_data_html(request):
+async def get_weather_data_html(request) -> web.Response:
+    _resp, last_modified = await check_last_modified(request, key='weather_data')
+    if _resp is not None:
+        return _resp
     data = await get_weather_context_data(request)
     data['include_json_data'] = True
-    return data
+    resp: web.Response = aiohttp_jinja2.render_template(
+        'weather2/includes/weather-current.html',
+        request=request,
+        context=data,
+    )
+    resp.last_modified = last_modified
+    return resp
 
 @routes.get('/forecast-data-json')
 async def get_forecast_data_json(request):
@@ -421,11 +451,19 @@ async def get_forecast_data_json(request):
     return web.json_response(data['weather_forecast'])
 
 @routes.get('/forecast-data-html')
-@aiohttp_jinja2.template('weather2/includes/weather-forecast.html')
-async def get_forecast_data_html(request):
+async def get_forecast_data_html(request) -> web.Response:
+    _resp, last_modified = await check_last_modified(request, key='weather_forecast')
+    if _resp is not None:
+        return _resp
     data = await get_forecast_context_data(request)
     data['include_json_data'] = True
-    return data
+    resp: web.Response = aiohttp_jinja2.render_template(
+        'weather2/includes/weather-forecast.html',
+        request=request,
+        context=data,
+    )
+    resp.last_modified = last_modified
+    return resp
 
 @logger.catch(reraise=True)
 async def init_app(app: web.Application):
