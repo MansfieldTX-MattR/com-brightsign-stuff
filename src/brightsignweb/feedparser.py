@@ -11,6 +11,7 @@ import aiohttp
 from pyquery import PyQuery as pq
 from loguru import logger
 
+from . import timezone
 from .serialization import DataclassSerialize
 
 ItemId = tuple[datetime.datetime, str]
@@ -37,21 +38,22 @@ def get_text(elem, selector) -> str:
         sub_elem = elem(selector).eq(0)
     return sub_elem.text().strip(' ')
 
-def parse_dt(dt_str: str) -> datetime.datetime:
+def parse_dt(dt_str: str, tz: datetime.tzinfo) -> datetime.datetime:
     # Wed, 02 Sep 2020 20:36:22 -0600
     if dt_str.endswith('GMT'):
         dt_fmt = '%a, %d %b %Y %H:%M:%S GMT'
     else:
         dt_fmt = '%a, %d %b %Y %H:%M:%S %z'
     dt = datetime.datetime.strptime(dt_str, dt_fmt)
-    return dt.replace(tzinfo=None)
+    return timezone.make_aware(dt, tz)
 
-def parse_calenderEvent_dt(date_str: str, time_str: str) -> datetime.datetime:
+def parse_calenderEvent_dt(date_str: str, time_str: str, tz: datetime.tzinfo) -> datetime.datetime:
     dt_fmt = '%B %d, %Y %I:%M %p'
     m, d, y = date_str.split(' ')
     d = int(d.rstrip(','))
     date_str = f'{m} {d:02d}, {y}'
-    return datetime.datetime.strptime(f'{date_str} {time_str}', dt_fmt)
+    dt = datetime.datetime.strptime(f'{date_str} {time_str}', dt_fmt)
+    return timezone.make_aware(dt, tz)
 
 
 def get_calendarEvent_elem(src_elem, tag_name):
@@ -74,6 +76,17 @@ class Feed(Generic[FT], DataclassSerialize):
     items_by_index: dict[int, FT] = field(default_factory=dict)
     custom_items: dict[ItemId, CustomFeedItem] = field(default_factory=dict)
     custom_items_by_index: dict[int, CustomFeedItem] = field(default_factory=dict)
+    _local_tz: ClassVar[datetime.tzinfo|None] = None
+
+    @classmethod
+    def set_local_timezone(cls, tz: datetime.tzinfo) -> None:
+        cls._local_tz = tz
+
+    @classmethod
+    def get_local_timezone(cls) -> datetime.tzinfo:
+        if cls._local_tz is None:
+            raise ValueError('local timezone not set')
+        return cls._local_tz
 
     def _serialize(self) -> dict:
         data = super()._serialize()
@@ -116,7 +129,7 @@ class Feed(Generic[FT], DataclassSerialize):
         kw = dict(
             title=get_text(chan, 'title'),
             link=get_text(chan, 'link'),
-            build_date=parse_dt(get_text(chan, 'lastBuildDate')),
+            build_date=parse_dt(get_text(chan, 'lastBuildDate'), cls.get_local_timezone()),
             description=get_text(chan, 'description'),
         )
         return kw
@@ -274,6 +287,17 @@ class FeedItem(DataclassSerialize):
     index: int
     use_description: ClassVar[bool] = False
     is_custom_item: ClassVar[bool] = False
+    _local_tz: ClassVar[datetime.tzinfo|None] = None
+
+    @classmethod
+    def set_local_timezone(cls, tz: datetime.tzinfo) -> None:
+        cls._local_tz = tz
+
+    @classmethod
+    def get_local_timezone(cls) -> datetime.tzinfo:
+        if cls._local_tz is None:
+            raise ValueError('local timezone not set')
+        return cls._local_tz
 
     @property
     def id(self) -> ItemId:
@@ -289,7 +313,7 @@ class FeedItem(DataclassSerialize):
     def _kwargs_from_pq(cls, elem: pq) -> dict:
         kw = dict(
             title=get_text(elem, 'title'),
-            pub_date=parse_dt(get_text(elem, 'pubDate')),
+            pub_date=parse_dt(get_text(elem, 'pubDate'), cls.get_local_timezone()),
             description=get_text(elem, 'description'),
         )
         evt_times = get_text(elem, 'calendarEvent:EventTimes').split(' - ')
@@ -298,12 +322,13 @@ class FeedItem(DataclassSerialize):
             evt_dates = evt_dates.split(' - ')
         else:
             evt_dates = [evt_dates, evt_dates]
+        tz = cls.get_local_timezone()
         for i, key in enumerate(['start_time', 'end_time']):
-            kw[key] = parse_calenderEvent_dt(evt_dates[i], evt_times[i])
+            kw[key] = parse_calenderEvent_dt(evt_dates[i], evt_times[i], tz)
         return kw
 
     def is_hidden(self) -> bool:
-        return self.end_time < datetime.datetime.now()
+        return self.end_time < timezone.get_now_utc()
 
     def update(self, **kwargs) -> bool:
         changed = False
@@ -394,7 +419,7 @@ class LegistarFeed(Feed['LegistarFeedItem']):
         kw = dict(
             title=get_text(chan, 'title'),
             link=get_text(chan, 'link'),
-            build_date=datetime.datetime.now(),
+            build_date=timezone.get_now_utc(),
             description='',
         )
         return kw
@@ -436,7 +461,7 @@ class LegistarFeedItem(FeedItem):
             title=title,
             start_time=start_time,
             end_time=end_time,
-            pub_date=parse_dt(get_text(elem, 'pubDate')),
+            pub_date=parse_dt(get_text(elem, 'pubDate'), cls.get_local_timezone()),
             description='',
             guid=get_text(elem, 'guid'),
             category=get_text(elem, 'category'),
@@ -458,6 +483,8 @@ class LegistarFeedItem(FeedItem):
             dt = datetime.datetime.strptime(dt_str, dt_fmt)
         except ValueError:
             return title_str, datetime.datetime(1970, 1, 2)
+        tz = cls.get_local_timezone()
+        dt = timezone.make_aware(dt, tz)
         return title, dt
 
     def is_hidden(self) -> bool:
@@ -509,3 +536,8 @@ class DescriptionItem(DataclassSerialize):
             if len(s):
                 lines.append(s)
         return cls(title=title, content_lines=lines)
+
+
+def set_local_timezone(tz: datetime.tzinfo) -> None:
+    Feed.set_local_timezone(tz)
+    FeedItem.set_local_timezone(tz)

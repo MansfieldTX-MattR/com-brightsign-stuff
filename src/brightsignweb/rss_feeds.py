@@ -10,6 +10,8 @@ from .feedparser import (
     FeedItem, MeetingsFeedItem, CalendarFeedItem, LegistarFeedItem,
 )
 from . import requests
+
+from . import timezone
 from .localstorage import get_or_create_app_item, AppItem
 from .types import FeedName, FeedNames, UPDATE_TASK_GROUP_KEY
 
@@ -87,7 +89,7 @@ async def get_rss_tmpl_context[
     async with app_item:
         if app_item.delta is None:
             app_item.delta = UPDATE_DELTA
-            app_item.dt = datetime.datetime.now()
+            app_item.dt = timezone.get_now_utc()
         if app_item.item is None or app_item.delta is None or app_item.expired:
             logger.debug(f'trigger update_evt for {app_item.key}')
             app_item.update_evt.set()
@@ -124,7 +126,7 @@ async def _fetch_rss_feed(app: web.Application, app_item: AppItem[FeedName, Feed
     else:
         feed = app_item.item
         feed.update_from_xml_str(resp_text)
-    now = datetime.datetime.now()
+    now = timezone.get_now_utc()
     await app_item.update(app, dt=now, delta=UPDATE_DELTA)
 
 
@@ -206,12 +208,13 @@ async def custom_feed_item_post(request: web.Request):
         'title':data['title'],
         'description':data['description'] if data['description'] else '',
         'index':int(data['index']),         # type: ignore
-        'pub_date':datetime.datetime.now(),
+        'pub_date':timezone.get_now_local(request.app),
     }
     for key in ['start_time', 'end_time']:
         s = data[key]
         assert isinstance(s, str)
         dt = datetime.datetime.strptime(s, dt_fmt)
+        dt = timezone.make_aware(dt, timezone.get_timezone(request.app))
         kw[key] = dt
 
     h = data['html_content']

@@ -2,8 +2,12 @@ from __future__ import annotations
 from typing import Iterator, Self, Any
 import dataclasses
 import datetime
+from zoneinfo import ZoneInfo
 
 import jsonfactory
+
+from . import timezone
+
 
 class DataclassSerialize:
     def _iter_ser_fields(self) -> Iterator[str]:
@@ -49,7 +53,19 @@ class JsonEncoder:
     def encode(self, o):
         d = None
         if isinstance(o, datetime.datetime):
-            d = {'timestamp':o.timestamp(), '__class__':self.cls_to_str(o.__class__)}
+            ts = timezone.dt_to_timestamp(o)
+            tz = o.tzinfo
+            if isinstance(tz, ZoneInfo):
+                tz_name = tz.key
+            else:
+                assert tz is not None
+                assert tz == timezone.UTC
+                tz_name = 'UTC'
+            d = {
+                'timestamp':ts,
+                'tz': tz_name,
+                '__class__':self.cls_to_str(o.__class__),
+            }
         elif isinstance(o, datetime.timedelta):
             d = {'total_seconds':o.total_seconds(), '__class__':self.cls_to_str(o.__class__)}
         elif isinstance(o, DataclassSerialize):
@@ -62,7 +78,12 @@ class JsonEncoder:
             cls = self.str_to_cls(d['__class__'])
             if cls is not None:
                 if cls is datetime.datetime:
-                    return datetime.datetime.fromtimestamp(d['timestamp'])
+                    tz_name = d['tz']
+                    if tz_name == 'UTC':
+                        tz = timezone.UTC
+                    else:
+                        tz = ZoneInfo(tz_name)
+                    return timezone.dt_from_timestamp(d['timestamp'], tz)
                 elif cls is datetime.timedelta:
                     return datetime.timedelta(seconds=d['total_seconds'])
                 elif issubclass(cls, DataclassSerialize):

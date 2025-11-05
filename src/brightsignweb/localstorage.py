@@ -12,6 +12,7 @@ import aiofiles
 import jsonfactory
 
 from .serialization import DataclassSerialize
+from . import timezone
 
 STORAGE_FILE = Path.home() / '.config' / 'brightsignweb' / 'localstorage.json'
 
@@ -94,7 +95,7 @@ class AppItem[_AppItemKey, T](DataclassSerialize):
         dt = self.dt
         if dt is None:
             return True
-        now = datetime.datetime.now()
+        now = timezone.get_now_utc()
         next_update = dt + self.delta
         return now >= next_update
 
@@ -103,7 +104,7 @@ class AppItem[_AppItemKey, T](DataclassSerialize):
         if self.delta is None:
             return None
         if self.dt is None:
-            return datetime.datetime.now()
+            return timezone.get_now_utc()
         return self.dt + self.delta
 
     @property
@@ -111,7 +112,7 @@ class AppItem[_AppItemKey, T](DataclassSerialize):
         dt = self.next_update
         if dt is None:
             return None
-        now = datetime.datetime.now()
+        now = timezone.get_now_utc()
         td = dt - now
         return td.total_seconds()
 
@@ -285,7 +286,7 @@ async def set_app_item[Kt: _AppItemKey, T](
     dt_key: str|None = None
 ) -> AppItem[Kt, T]:
     if dt is None:
-        dt = datetime.datetime.now()
+        dt = timezone.get_now_utc()
     item_dict = await _get_app_items(app)
     app_item = AppItem[Kt, T](key=key, dt=dt, delta=delta, item=item, dt_key=dt_key)
     async with _get_lock(app):

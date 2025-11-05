@@ -24,6 +24,10 @@ import jsonfactory
 
 from .serialization import DataclassSerialize
 from .requests import get_aio_client_session
+from .timezone import (
+    get_now, get_now_utc, make_aware, assert_dt_aware, as_timezone,
+    TimezoneNotSetError,
+)
 from .types import *
 
 
@@ -40,17 +44,6 @@ EPOCH_UTC = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
 routes = web.RouteTableDef()
 
 
-class TimezoneError(Exception):
-    """Base exception for timezone errors.
-    """
-
-class TimezoneUnawareError(TimezoneError):
-    """Exception raised when a datetime is expected to be timezone-aware but is not.
-    """
-
-class TimezoneNotSetError(TimezoneError):
-    """Exception raised when a timezone is expected to be set but is not.
-    """
 
 
 
@@ -70,21 +63,6 @@ class Timespan(enum.Enum):
         raise KeyError(f'Invalid Timespan: {s}')
 
 
-def get_now(tz: datetime.tzinfo = datetime.UTC) -> datetime.datetime:
-    return datetime.datetime.now().astimezone(tz)
-
-def is_aware(dt: datetime.datetime) -> bool:
-    return dt.tzinfo is not None and dt.utcoffset() is not None
-
-def make_aware(dt: datetime.datetime, tz: datetime.tzinfo) -> datetime.datetime:
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=tz)
-    return dt.astimezone(tz)
-
-def as_timezone(dt: datetime.datetime, tz: datetime.tzinfo) -> datetime.datetime:
-    if not is_aware(dt):
-        raise TimezoneUnawareError('dt must be timezone-aware')
-    return dt.astimezone(tz)
 
 
 def get_timespan(
@@ -232,12 +210,11 @@ class CivicPlusItem(DataclassSerialize):
         if self.is_live:
             return False
         if now is None:
-            now = get_now()
+            now = get_now_utc()
         return now > self.start_datetime + datetime.timedelta(days=1)
 
     def _is_valid_dt(self, dt: datetime.datetime) -> bool:
-        if not is_aware(dt):
-            raise TimezoneUnawareError('dt must be timezone-aware')
+        assert_dt_aware(dt)
         return dt > EPOCH_UTC
 
     @classmethod
@@ -253,9 +230,8 @@ class CivicPlusItem(DataclassSerialize):
 
             if cls.LOCAL_TZ is None:
                 raise TimezoneNotSetError('LOCAL_TZ must be set before parsing datetime strings')
-            if not is_aware(dt):
-                dt = dt.replace(tzinfo=cls.LOCAL_TZ)
-            return dt.astimezone(datetime.UTC)
+            dt = make_aware(dt, cls.LOCAL_TZ)
+            return dt
 
 
         start_time = parse_dt_str(json_data['startDateTime'])
@@ -368,7 +344,7 @@ class CivicPlusItems(DataclassSerialize):
             yield from self.items_by_dt[dt].values()
 
     def iter_filtered(self, max_items: int|None = None) -> Iterator[CivicPlusItem]:
-        now = datetime.datetime.now().astimezone(datetime.UTC)
+        now = get_now_utc()
         i = 0
         for item in self.iter_sorted():
             if max_items is not None and i >= max_items:
@@ -413,8 +389,8 @@ async def _get_civicplus_events(
     def quote_iso_str(s: str) -> str:
         # return s.replace(':', '%3A')
         return quote(s)
-    if start_dt.tzinfo is None or end_dt.tzinfo is None:
-        raise TimezoneUnawareError('start_dt and end_dt must be timezone-aware')
+    assert_dt_aware(start_dt)
+    assert_dt_aware(end_dt)
     start_dt = start_dt.astimezone(datetime.timezone.utc)
     end_dt = end_dt.astimezone(datetime.timezone.utc)
     params = {
@@ -555,8 +531,10 @@ class CPEventListView(CPEventListViewBase['EventListContext']):
         start_dt, end_dt = None, None
         if start_dt_str is not None:
             start_dt = datetime.datetime.fromisoformat(start_dt_str)
+            assert_dt_aware(start_dt)
         if end_dt_str is not None:
             end_dt = datetime.datetime.fromisoformat(end_dt_str)
+            assert_dt_aware(end_dt)
         span = Timespan.from_str(span_str)
         use_span = params.get('use_span', 'false').lower() == 'true'
         if use_span or start_dt is None or end_dt is None:
@@ -611,7 +589,7 @@ class CPMeetingsViewBase(CPEventListViewBase['EventMeetingsContext']):
         now: datetime.datetime|None = None,
     ) -> CivicPlusItems:
         if now is None:
-            now = get_now()
+            now = get_now_utc()
         if self._cached_items is not None:
             td = now - self._cached_items.build_date
             if td < self._cache_expiry:

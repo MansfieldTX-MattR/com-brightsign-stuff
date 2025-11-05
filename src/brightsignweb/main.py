@@ -9,6 +9,7 @@ import aiohttp_jinja2
 from dotenv import load_dotenv
 import click
 
+from . import feedparser
 from . import rss_feeds
 from . import weather
 from . import requests
@@ -26,6 +27,8 @@ PROJECT_ROOT = cast(Path, importlib.resources.files(__name__.split('.')[0]))
 TEMPLATE_DIR = PROJECT_ROOT
 LOCAL_TIMEZONE_NAME = 'US/Central'
 LOCAL_TIMEZONE = ZoneInfo(LOCAL_TIMEZONE_NAME)
+
+feedparser.set_local_timezone(LOCAL_TIMEZONE)
 
 routes = web.RouteTableDef()
 

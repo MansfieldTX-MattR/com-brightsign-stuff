@@ -14,6 +14,7 @@ from .localstorage import (
     get_app_item, set_app_item, get_or_create_app_item, AppItem,
 )
 from .staticfiles import get_static_url
+from . import timezone
 from .types import *
 
 
@@ -158,13 +159,22 @@ def get_icon(icon: str, is_daytime: bool) -> str:
     day_str = 'd' if is_daytime else 'n'
     return f'{icon[:2]}{day_str}'
 
-def inject_condition_data(app: web.Application, weather_data, sunrise=None, sunset=None, dt=None):
+def inject_condition_data(
+    app: web.Application,
+    weather_data,
+    sunrise: float|None = None,
+    sunset: float|None = None,
+    dt: float|None = None
+):
     if dt is None:
         dt = weather_data['dt']
+        assert isinstance(dt, (int, float))
     if sunrise is None:
         sunrise = weather_data['sys']['sunrise']
+        assert isinstance(sunrise, (int, float))
     if sunset is None:
         sunset = weather_data['sys']['sunset']
+        assert isinstance(sunset, (int, float))
     is_daytime = sunrise <= dt <= sunset
     for w in weather_data['weather']:
         cond = WEATHER_CONDITIONS_BY_CODE[w['id']].copy()
@@ -172,7 +182,7 @@ def inject_condition_data(app: web.Application, weather_data, sunrise=None, suns
         cond['meteocon'] = get_static_url(app, f'weather2/meteocons/fill/all/{meteocon}')
         w.update(cond)
 
-def average_forecast_data(forecast_data):
+def average_forecast_data(app: web.Application, forecast_data):
 
     avg_keys = [
         'main.temp', 'main.feels_like', 'main.pressure', 'main.humidity',
@@ -243,7 +253,7 @@ def average_forecast_data(forecast_data):
     item_count = 0
 
     for item in forecast_data['list']:
-        dt = datetime.datetime.fromtimestamp(item['dt'])
+        dt = timezone.dt_from_timestamp_local(app, item['dt'])
         if cur_date is None or dt.date() != cur_date:
             if item_count != 0:
                 assert cur_date is not None
@@ -306,7 +316,7 @@ async def get_forecast_context_data(request) -> ForecastT:
 
 @logger.catch(reraise=True)
 async def _fetch_forecast_data(app: web.Application, app_item: AppItem[FORECAST_KEY_NAME, ForecastT]):
-    now = datetime.datetime.now()
+    now = timezone.get_now_local(app)
     logger.info('retreiving forecast data')
     lat, lon = await get_geo_coords(app)
     num_days = 5
@@ -325,14 +335,15 @@ async def _fetch_forecast_data(app: web.Application, app_item: AppItem[FORECAST_
         response.raise_for_status()
         data = await response.json()
         sunrise, sunset = data['city']['sunrise'], data['city']['sunset']
-        dt = datetime.datetime.now().replace(hour=12, minute=0)
+        dt = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        ts = timezone.dt_to_timestamp(dt)
 
         for item in data['list']:
-            inject_condition_data(app, item, sunrise, sunset, dt=dt.timestamp())
-        daily = average_forecast_data(data)
+            inject_condition_data(app, item, sunrise, sunset, dt=ts)
+        daily = average_forecast_data(app, data)
         data['daily'] = [daily[date] for date in sorted(daily.keys())]
         data['dt'] = now.timestamp()
-        dt = datetime.datetime.fromtimestamp(data['dt'])
+        dt = timezone.dt_from_timestamp_local(app, data['dt'])
         await app_item.update(app, item=data, dt=dt, delta=FORECAST_UPDATE_DELTA)
 
 
@@ -367,7 +378,7 @@ async def _fetch_weather_data(app: web.Application, app_item: AppItem[WEATHER_DA
         response.raise_for_status()
         data = await response.json()
         inject_condition_data(app, data)
-        dt = datetime.datetime.fromtimestamp(data['dt'])
+        dt = timezone.dt_from_timestamp_local(app, data['dt'])
         await app_item.update(app, item=data, dt=dt, delta=WEATHER_UPDATE_DELTA)
 
 
