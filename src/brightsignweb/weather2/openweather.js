@@ -1,6 +1,9 @@
 const weatherUpdateInterval = 60000;
 window.stopWeather = false;
 
+let weatherModified = new Date().toUTCString();
+let forecastModified = new Date().toUTCString();
+
 async function fetchWeather(lastModified=null){
     const url = document.getElementById('weather-data-url').href;
     const headers = {};
@@ -8,6 +11,10 @@ async function fetchWeather(lastModified=null){
         headers['If-Modified-Since'] = lastModified;
     }
     const resp = await fetch(url, { headers });
+    const respModified = resp.headers.get('Last-Modified');
+    if (respModified !== null){
+        weatherModified = respModified;
+    }
     if (resp.status === 304) {
         return null;
     }
@@ -23,6 +30,10 @@ async function fetchForecast(lastModified=null){
         headers['If-Modified-Since'] = lastModified;
     }
     const resp = await fetch(url, { headers });
+    const respModified = resp.headers.get('Last-Modified');
+    if (respModified !== null){
+        forecastModified = respModified;
+    }
     if (resp.status === 304) {
         return null;
     }
@@ -109,8 +120,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
     });
 });
 
-let weatherModified = new Date().toUTCString();
-let forecastModified = new Date().toUTCString();
 
 function fetchAndUpdate(){
     if (window.stopWeather){
@@ -118,14 +127,8 @@ function fetchAndUpdate(){
     }
     updateWeather(weatherModified).then(
         (modified) => {
-            if (modified) {
-                weatherModified = new Date().toUTCString();
-            }
             updateForecast(forecastModified).then(
                 (modified) => {
-                    if (modified) {
-                        forecastModified = new Date().toUTCString();
-                    }
                     window.setTimeout(fetchAndUpdate, weatherUpdateInterval);
                 }
             );
