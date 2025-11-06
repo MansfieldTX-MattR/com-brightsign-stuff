@@ -26,7 +26,6 @@ async function fetchWeather(lastModified=null){
     if (!modified) {
         return null;
     }
-    weatherModified = respModified;
     return data;
 }
 
@@ -36,7 +35,6 @@ async function fetchForecast(lastModified=null){
     if (!modified) {
         return null;
     }
-    forecastModified = respModified;
     return data;
 }
 
@@ -125,8 +123,14 @@ function fetchAndUpdate(){
     }
     updateWeather(weatherModified).then(
         (modified) => {
+            if (modified){
+                weatherModified = new Date().toUTCString();
+            }
             updateForecast(forecastModified).then(
                 (modified) => {
+                    if (modified){
+                        forecastModified = new Date().toUTCString();
+                    }
                     window.setTimeout(fetchAndUpdate, weatherUpdateInterval);
                 }
             );
