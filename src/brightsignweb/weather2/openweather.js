@@ -53,7 +53,7 @@ async function updateWeather(lastModified=null){
     jsonScript.parentElement.removeChild(jsonScript);
     if (currentData.dt === weatherData.dt){
         console.log('dts match');
-        return true;
+        return false;
     }
     console.log('updating weather: ', weatherData);
     scriptEl.textContent = jsonScript.textContent;
@@ -80,7 +80,7 @@ async function updateForecast(lastModified=null){
     jsonScript.parentElement.removeChild(jsonScript);
     if (currentData.dt === weatherData.dt){
         console.log('dts match');
-        return true;
+        return false;
     }
     console.log('updating forecast: ', weatherData);
     scriptEl.textContent = jsonScript.textContent;
