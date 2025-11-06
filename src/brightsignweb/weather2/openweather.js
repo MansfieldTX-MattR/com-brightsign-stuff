@@ -4,42 +4,40 @@ window.stopWeather = false;
 let weatherModified = new Date().toUTCString();
 let forecastModified = new Date().toUTCString();
 
-async function fetchWeather(lastModified=null){
-    const url = document.getElementById('weather-data-url').href;
+async function fetchItem(url, lastModified=null) {
     const headers = {};
     if (lastModified !== null){
         headers['If-Modified-Since'] = lastModified;
     }
     const resp = await fetch(url, { headers });
     const respModified = resp.headers.get('Last-Modified');
-    if (respModified !== null){
-        weatherModified = respModified;
-    }
     if (resp.status === 304) {
-        return null;
+        return { modified: false, data: null, lastModified: respModified };
     }
     const htmlText = await resp.text();
     const parser = new DOMParser();
-    return parser.parseFromString(htmlText, 'text/html');
+    const doc = parser.parseFromString(htmlText, 'text/html');
+    return { modified: true, data: doc, lastModified: respModified };
+}
+
+async function fetchWeather(lastModified=null){
+    const url = document.getElementById('weather-data-url').href;
+    const { modified, data, lastModified: respModified } = await fetchItem(url, lastModified);
+    if (!modified) {
+        return null;
+    }
+    weatherModified = respModified;
+    return data;
 }
 
 async function fetchForecast(lastModified=null){
     const url = document.getElementById('forecast-data-url').href;
-    const headers = {};
-    if (lastModified !== null){
-        headers['If-Modified-Since'] = lastModified;
-    }
-    const resp = await fetch(url, { headers });
-    const respModified = resp.headers.get('Last-Modified');
-    if (respModified !== null){
-        forecastModified = respModified;
-    }
-    if (resp.status === 304) {
+    const { modified, data, lastModified: respModified } = await fetchItem(url, lastModified);
+    if (!modified) {
         return null;
     }
-    const htmlText = await resp.text();
-    const parser = new DOMParser();
-    return parser.parseFromString(htmlText, 'text/html');
+    forecastModified = respModified;
+    return data;
 }
 
 async function updateWeather(lastModified=null){
