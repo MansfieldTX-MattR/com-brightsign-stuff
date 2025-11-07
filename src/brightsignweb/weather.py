@@ -442,7 +442,6 @@ async def get_weather_data_html(request) -> web.Response:
         request=request,
         context=data,
     )
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.last_modified = last_modified
     return resp
 
@@ -463,7 +462,6 @@ async def get_forecast_data_html(request) -> web.Response:
         request=request,
         context=data,
     )
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.last_modified = last_modified
     return resp
 
