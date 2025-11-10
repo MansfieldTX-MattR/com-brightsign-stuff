@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Literal, TypedDict, NotRequired, Iterator, cast
+from typing import Literal, TypedDict, NotRequired, Iterator, cast, overload
 import os
 import datetime
 from collections import Counter
@@ -344,9 +344,13 @@ async def get_geo_coords(app: web.Application) -> LatLonT:
         await set_app_item(app, key, coords)
         return coords
 
+@overload
+async def get_forecast_context_data(request: web.Request, return_dt: Literal[False] = False) -> ForecastContext: ...
+@overload
+async def get_forecast_context_data(request: web.Request, return_dt: Literal[True]) -> tuple[ForecastContext, datetime.datetime]: ...
 
 @logger.catch(reraise=True)
-async def get_forecast_context_data(request) -> ForecastContext:
+async def get_forecast_context_data(request: web.Request, return_dt: bool = False) -> ForecastContext|tuple[ForecastContext, datetime.datetime]:
     key: FORECAST_KEY_NAME = 'weather_forecast'
     app_item, created = await get_or_create_app_item(request.app, key, cls=WeatherForecast)
     async with app_item:
@@ -358,6 +362,9 @@ async def get_forecast_context_data(request) -> ForecastContext:
         else:
             logger.debug('using cached forecast')
         assert app_item.item is not None
+        if return_dt:
+            assert app_item.dt is not None
+            return {'weather_forecast':app_item.item}, app_item.dt
         return {'weather_forecast':app_item.item}
 
 
@@ -406,9 +413,13 @@ async def _fetch_forecast_data(app: web.Application, app_item: AppItem[FORECAST_
         dt = timezone.dt_from_timestamp_local(app, data['dt'])
         await app_item.update(app, item=data, dt=dt, delta=FORECAST_UPDATE_DELTA)
 
+@overload
+async def get_weather_context_data(request: web.Request, return_dt: Literal[False] = False) -> WeatherDataContext: ...
+@overload
+async def get_weather_context_data(request: web.Request, return_dt: Literal[True]) -> tuple[WeatherDataContext, datetime.datetime]: ...
 
 @logger.catch(reraise=True)
-async def get_weather_context_data(request) -> WeatherDataContext:
+async def get_weather_context_data(request: web.Request, return_dt: bool = False) -> WeatherDataContext|tuple[WeatherDataContext, datetime.datetime]:
     key: WEATHER_DATA_KEY_NAME = 'weather_data'
     app_item, created = await get_or_create_app_item(request.app, key, cls=WeatherData)
     async with app_item:
@@ -420,6 +431,9 @@ async def get_weather_context_data(request) -> WeatherDataContext:
         else:
             logger.debug('using cached weather')
         assert app_item.item is not None
+        if return_dt:
+            assert app_item.dt is not None
+            return {'weather_data':app_item.item}, app_item.dt
         return {'weather_data':app_item.item}
 
 async def _fetch_weather_data(app: web.Application, app_item: AppItem[WEATHER_DATA_KEY_NAME, WeatherData]):
@@ -490,7 +504,7 @@ async def get_weather_data_html(request) -> web.Response:
     _resp, last_modified = await check_last_modified(request, key='weather_data')
     if _resp is not None:
         return _resp
-    data = await get_weather_context_data(request)
+    data, last_modified = await get_weather_context_data(request, return_dt=True)
     data['include_json_data'] = True
     resp: web.Response = aiohttp_jinja2.render_template(
         'weather2/includes/weather-current.html',
@@ -510,7 +524,7 @@ async def get_forecast_data_html(request) -> web.Response:
     _resp, last_modified = await check_last_modified(request, key='weather_forecast')
     if _resp is not None:
         return _resp
-    data = await get_forecast_context_data(request)
+    data, last_modified = await get_forecast_context_data(request, return_dt=True)
     data['include_json_data'] = True
     resp: web.Response = aiohttp_jinja2.render_template(
         'weather2/includes/weather-forecast.html',
