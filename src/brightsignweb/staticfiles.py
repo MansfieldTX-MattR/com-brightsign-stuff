@@ -6,10 +6,11 @@ from aiohttp import web
 import jinja2
 import click
 
+from .types import STATIC_URL_PREFIX
+
 
 PROJECT_ROOT = cast(Path, importlib.resources.files(__name__.split('.')[0]))
 
-STATIC_URL_PREFIX = web.AppKey[str]('static_url_prefix')
 STATIC_ROOT = PROJECT_ROOT
 STATIC_DIRS = [STATIC_ROOT / s for s in ['meetings', 'weather2']]
 

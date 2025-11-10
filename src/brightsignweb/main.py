@@ -16,7 +16,7 @@ from . import requests
 from . import civicplus
 from .localstorage import UpdateTaskGroup
 from .staticfiles import (
-    STATIC_DIRS, STATIC_URL_PREFIX,
+    STATIC_DIRS,
     collectstatic as staticfiles_collectstatic,
     static_filter,
 )
