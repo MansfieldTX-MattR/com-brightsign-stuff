@@ -1,9 +1,14 @@
-from typing import TypedDict, cast
+from __future__ import annotations
+from typing import TypedDict, cast, TYPE_CHECKING
 from loguru import logger
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import importlib.resources
+if TYPE_CHECKING:
+    from logging import Logger
+
 from aiohttp import web
+from aiohttp.web_log import AccessLogger as AiohttpAccessLogger
 import jinja2
 import aiohttp_jinja2
 from dotenv import load_dotenv
@@ -31,6 +36,45 @@ LOCAL_TIMEZONE = ZoneInfo(LOCAL_TIMEZONE_NAME)
 feedparser.set_local_timezone(LOCAL_TIMEZONE)
 
 routes = web.RouteTableDef()
+
+
+logger.level('ACCESS', no=25, color='<green><bold>')
+_access_logger = logger
+
+
+class AccessLogger(AiohttpAccessLogger):
+    LOG_FORMAT = '%a "%r" %s %b "%{Referer}i" "%{User-Agent}i"'
+    def __init__(self, logger: Logger, log_format: str = LOG_FORMAT) -> None:
+        log_format = AccessLogger.LOG_FORMAT
+        super().__init__(logger, log_format)
+
+    @property
+    def enabled(self) -> bool:
+        return True
+
+    def log(self, request: web.Request, response: web.StreamResponse, time: float) -> None:
+        try:
+            if request.path.startswith('/healthcheck') and response.status == 200:
+                return
+            fmt_info = self._format_line(request, response, time)
+            values = list()
+            extra = dict()
+            for key, value in fmt_info:
+                values.append(value)
+
+                if key.__class__ is str:
+                    extra[key] = value
+                else:
+                    k1, k2 = key  # type: ignore[misc]
+                    dct = extra.get(k1, {})  # type: ignore[var-annotated,has-type]
+                    dct[k2] = value  # type: ignore[index,has-type]
+                    extra[k1] = dct  # type: ignore[has-type,assignment]
+            msg = self._log_format % tuple(values)
+            _access_logger.log('ACCESS', msg, extra=extra)
+        except Exception:
+            logger.exception("Error in logging")
+
+
 
 @routes.get('/healthcheck')
 async def healthcheck(request: web.Request) -> web.Response:
@@ -95,7 +139,8 @@ def serve(
     static_url_prefix: str = '/static/'
 ) -> None:
     app = init_func(serve_static=serve_static, static_url_prefix=static_url_prefix)
-    web.run_app(app, host=host, port=port)
+    assert app[STATIC_URL_PREFIX].strip('/') == static_url_prefix.strip('/'), f'static_url_prefix mismatch: {static_url_prefix} != {app[STATIC_URL_PREFIX]}'
+    web.run_app(app, host=host, port=port, access_log_class=AccessLogger)
 
 
 if __name__ == '__main__':
