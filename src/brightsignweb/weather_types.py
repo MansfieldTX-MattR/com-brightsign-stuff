@@ -133,7 +133,7 @@ class WeatherDataSrc(WeatherDataBase[NowWeatherSrc]):
 
 class WeatherData(WeatherDataBase[NowWeather]):
     """Current weather data with additional fields"""
-    pass
+    next_update_iso: NotRequired[str]       #: Next update time in ISO format
 
 
 def weather_data_from_src(data: WeatherDataSrc, weather: list[NowWeather]) -> WeatherData:
@@ -258,8 +258,9 @@ def weather_forecast_src_from_items[T: (ForecastItemSrc|ForecastItem)](
 
 class WeatherForecast(WeatherForecastBase):
     """Weather forecast data with additional fields"""
-    dt: float                       #: Data calculation time
-    daily: list[DailyForecastItem]  #: List of daily forecast items
+    dt: float                           #: Data calculation time
+    daily: list[DailyForecastItem]      #: List of daily forecast items
+    next_update_iso: NotRequired[str]   #: Next update time in ISO format
 
 
 def weather_forecast_from_src(

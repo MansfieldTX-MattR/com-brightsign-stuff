@@ -362,10 +362,16 @@ async def get_forecast_context_data(request: web.Request, return_dt: bool = Fals
         else:
             logger.debug('using cached forecast')
         assert app_item.item is not None
+        data = app_item.item.copy()
+        next_update_dt = app_item.next_update
+        assert next_update_dt is not None
+        next_update_dt = timezone.as_timezone(next_update_dt, timezone.UTC)
+        next_update_dt += datetime.timedelta(seconds=5)
+        data['next_update_iso'] = next_update_dt.isoformat()
         if return_dt:
             assert app_item.dt is not None
-            return {'weather_forecast':app_item.item}, app_item.dt
-        return {'weather_forecast':app_item.item}
+            return {'weather_forecast':data}, app_item.dt
+        return {'weather_forecast':data}
 
 
 @logger.catch(reraise=True)
@@ -431,10 +437,16 @@ async def get_weather_context_data(request: web.Request, return_dt: bool = False
         else:
             logger.debug('using cached weather')
         assert app_item.item is not None
+        data = app_item.item.copy()
+        next_update_dt = app_item.next_update
+        assert next_update_dt is not None
+        next_update_dt += datetime.timedelta(seconds=5)
+        next_update_dt = timezone.as_timezone(next_update_dt, timezone.UTC)
+        data['next_update_iso'] = next_update_dt.isoformat()
         if return_dt:
             assert app_item.dt is not None
-            return {'weather_data':app_item.item}, app_item.dt
-        return {'weather_data':app_item.item}
+            return {'weather_data':data}, app_item.dt
+        return {'weather_data':data}
 
 async def _fetch_weather_data(app: web.Application, app_item: AppItem[WEATHER_DATA_KEY_NAME, WeatherData]):
     logger.info('retreiving weather data')

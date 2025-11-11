@@ -1,8 +1,6 @@
 const weatherUpdateInterval = 60000;
 window.stopWeather = false;
 
-let weatherModified = new Date().toUTCString();
-let forecastModified = new Date().toUTCString();
 
 async function fetchItem(url, lastModified=null) {
     const headers = {};
@@ -37,6 +35,8 @@ async function fetchForecast(lastModified=null){
     }
     return data;
 }
+
+
 
 async function updateWeather(lastModified=null){
     if (window.stopWeather){
@@ -117,25 +117,68 @@ document.addEventListener("DOMContentLoaded", (e) => {
 });
 
 
-function fetchAndUpdate(){
+function getNextUpdateTime(elemId){
+    const scriptEl = document.getElementById(elemId);
+    const data = JSON.parse(scriptEl.textContent);
+    if ('next_update_iso' in data){
+        return new Date(data.next_update_iso);
+    }
+    return null;
+}
+
+
+const updateFuncs = {
+    weather: {
+        update: updateWeather,
+        getNextUpdateTime: () => getNextUpdateTime('weather-json'),
+        defaultInterval: weatherUpdateInterval,
+    },
+    forecast: {
+        update: updateForecast,
+        getNextUpdateTime: () => getNextUpdateTime('forecast-json'),
+        defaultInterval: weatherUpdateInterval,
+    },
+};
+
+const nextUpdateTimes = {
+    weather: getNextUpdateTime('weather-json'),
+    forecast: getNextUpdateTime('forecast-json'),
+};
+
+
+function scheduleNextUpdate(key){
+    const defaultInterval = updateFuncs[key].defaultInterval;
+    const nextUpdateTime = nextUpdateTimes[key];
+    let delayMs = defaultInterval;
+    if (!(nextUpdateTime instanceof Date)){
+        console.warn(`no next update time for ${key}, using default interval`);
+        delayMs = defaultInterval;
+    } else {
+        const now = new Date();
+        if (nextUpdateTime > now){
+            const diffMs = nextUpdateTime - now;
+            delayMs = Math.max(diffMs, 1000);
+        }
+    }
+    console.log(`scheduling next ${key} update in ${Math.round(delayMs / 1000)} seconds`);
+    window.setTimeout(() => fetchAndUpdate(key), delayMs);
+}
+
+
+function fetchAndUpdate(key){
     if (window.stopWeather){
         return;
     }
-    updateWeather(weatherModified).then(
+    const updateFunc = updateFuncs[key];
+    updateFunc.update().then(
         (modified) => {
-            if (modified){
-                weatherModified = new Date().toUTCString();
-            }
-            updateForecast(forecastModified).then(
-                (modified) => {
-                    if (modified){
-                        forecastModified = new Date().toUTCString();
-                    }
-                    window.setTimeout(fetchAndUpdate, weatherUpdateInterval);
-                }
-            );
+            const nextUpdateTime = updateFunc.getNextUpdateTime();
+            nextUpdateTimes[key] = nextUpdateTime;
+            console.log(`next ${key} update at: `, nextUpdateTime);
+            scheduleNextUpdate(key);
         }
     );
 }
 
-window.setTimeout(fetchAndUpdate, weatherUpdateInterval);
+scheduleNextUpdate('weather');
+scheduleNextUpdate('forecast');
