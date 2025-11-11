@@ -100,6 +100,7 @@ function showDt(elem){
             day:'numeric',
             hour:'2-digit',
             minute:'numeric',
+            second:'2-digit',
         }
     );
     const p = elem.querySelector(".lastUpdate");
@@ -108,6 +109,14 @@ function showDt(elem){
     const td = document.querySelector(p.dataset.target);
     td.textContent = dtFmt.format(dt);
     p.parentElement.removeChild(p);
+    const p2 = elem.querySelector(".nextUpdate");
+    if (p2){
+        const timeIso = p2.dataset.timeIso;
+        const dt2 = new Date(timeIso);
+        const td2 = document.querySelector(p2.dataset.target);
+        td2.textContent = dtFmt.format(dt2);
+        p2.parentElement.removeChild(p2);
+    }
 }
 
 document.addEventListener("DOMContentLoaded", (e) => {

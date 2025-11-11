@@ -4,6 +4,9 @@
 <p class="lastUpdate"
    data-time-stamp="{{ weather_forecast.dt }}"
    data-target=".forecast-lastUpdate"></p>
+<p class="nextUpdate"
+   data-time-iso="{{ weather_forecast.next_update_iso }}"
+   data-target=".forecast-nextUpdate"></p>
 {% if include_json_data %}
 <script id="forecast-json" type="application/json">{{ weather_forecast|tojson(2) }}</script>
 {% endif %}

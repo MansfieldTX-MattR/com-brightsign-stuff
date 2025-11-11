@@ -10,6 +10,9 @@
     <p class="lastUpdate"
        data-time-stamp="{{ weather_data.dt }}"
        data-target=".current-lastUpdate"></p>
+    <p class="nextUpdate"
+       data-time-iso="{{ weather_data.next_update_iso }}"
+       data-target=".current-nextUpdate"></p>
 </div>
 {% endwith %}
 {% if include_json_data %}

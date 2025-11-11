@@ -24,14 +24,21 @@
             </div>
         </main>
         <table id="lastUpdateContainer" class="hidden">
-            <tr>
-                <th scope="row">Conditions Updated</th>
-                <td class="current-lastUpdate"></td>
-            </tr>
-            <tr>
-                <th scope="row">Forecast Updated</th>
-                <td class="forecast-lastUpdate"></td>
-            </tr>
+            <thead>
+                <tr><th>Update Type</th><th>Last Updated</th><th>Next Update</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th scope="row">Conditions</th>
+                    <td class="current-lastUpdate"></td>
+                    <td class="current-nextUpdate"></td>
+                </tr>
+                <tr>
+                    <th scope="row">Forecast</th>
+                    <td class="forecast-lastUpdate"></td>
+                    <td class="forecast-nextUpdate"></td>
+                </tr>
+            </tbody>
         </table>
         <div id="info" class="hidden"></div>
 
